@@ -222,7 +222,7 @@ const SOSEmotionPage = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}
         onClick={() => navigate('/')}
-        className="btn-secondary flex items-center justify-center gap-2"
+        className="btn-secondary flex items-center justify-center gap-2 mb-8"
       >
         <span className="text-lg arrow-left">←</span>
         返回首页

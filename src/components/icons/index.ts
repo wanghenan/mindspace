@@ -1,0 +1,5 @@
+export { default as HomeIcon } from './HomeIcon'
+export { default as ChatIcon } from './ChatIcon'
+export { default as AnalyticsIcon } from './AnalyticsIcon'
+export { default as IconBase } from './IconBase'
+export type { IconProps } from './IconBase'

@@ -15,7 +15,7 @@ interface EmotionAnalysisResult {
 
 // 阿里千问API配置
 const DASHSCOPE_API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY
-const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
+const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 检查API密钥是否配置
 if (!DASHSCOPE_API_KEY) {
@@ -55,6 +55,9 @@ const EMOTION_ANALYSIS_PROMPT = `你是MindSpace的AI情绪分析专家，专门
 4. 语气要专业但温暖，避免医疗化表达`
 
 export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<EmotionAnalysisResult> {
+  console.log('🔍 开始情绪分析:', input)
+  console.log('🌐 使用API端点:', DASHSCOPE_API_URL) // 调试当前使用的端点
+  
   try {
     // 构建用户输入描述
     const intensityMap = {
@@ -81,48 +84,50 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
 详细描述: ${input.customInput || '无'}
     `.trim()
 
-    // 调用阿里千问API
+    console.log('📊 用户描述:', userDescription)
+
+    // 调用阿里千问API（使用OpenAI兼容格式）
     const response = await fetch(DASHSCOPE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
-        'X-DashScope-SSE': 'disable'
+        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'qwen-turbo',
-        input: {
-          messages: [
-            {
-              role: 'system',
-              content: EMOTION_ANALYSIS_PROMPT
-            },
-            {
-              role: 'user', 
-              content: userDescription
-            }
-          ]
-        },
-        parameters: {
-          temperature: 0.3,
-          max_tokens: 500,
-          top_p: 0.8
-        }
+        model: 'qwen-plus',
+        messages: [
+          {
+            role: 'system',
+            content: EMOTION_ANALYSIS_PROMPT
+          },
+          {
+            role: 'user', 
+            content: userDescription
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+        top_p: 0.8
       })
     })
+
+    console.log('🌐 API响应状态:', response.status)
 
     if (!response.ok) {
       throw new Error(`API请求失败: ${response.status}`)
     }
 
     const data = await response.json()
+    console.log('📝 API响应数据:', JSON.stringify(data).substring(0, 200) + '...')
     
-    if (data.code) {
-      throw new Error(`API错误: ${data.message}`)
+    if (data.error) {
+      throw new Error(`API错误: ${data.error.message}`)
     }
 
-    // 解析AI返回的JSON结果
-    const aiResponse = data.output.choices[0].message.content
+    // 解析AI返回的JSON结果（OpenAI格式）
+    const aiResponse = data.choices[0].message.content
+    console.log('🤖 AI回复内容:', aiResponse)
+    
     let analysisResult: EmotionAnalysisResult
 
     try {
@@ -134,8 +139,9 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
         suggestions: parsed.suggestions || [],
         empathyMessage: parsed.empathyMessage || '我理解你现在的感受，让我们一起来缓解这种不适'
       }
+      console.log('✅ 解析成功:', analysisResult)
     } catch (parseError) {
-      console.warn('AI返回格式解析失败，使用备用逻辑:', parseError)
+      console.warn('⚠️ AI返回格式解析失败，使用备用逻辑:', parseError)
       // 备用逻辑：基于规则匹配
       analysisResult = fallbackAnalysis(input)
     }
@@ -143,7 +149,7 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
     return analysisResult
 
   } catch (error) {
-    console.error('AI分析失败:', error)
+    console.error('❌ AI分析失败:', error)
     // 返回备用分析结果
     return fallbackAnalysis(input)
   }

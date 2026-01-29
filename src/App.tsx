@@ -5,13 +5,13 @@ import Layout from './components/Layout'
 
 // Pages
 import HomePage from './pages/HomePage'
+import ChatPage from './pages/ChatPage'
+import InsightPage from './pages/InsightPage'
 import SOSEmotionPage from './pages/SOSEmotionPage'
 import SOSAnalysisPage from './pages/SOSAnalysisPage'
 import SOSCardPage from './pages/SOSCardPage'
 import SOSFeedbackPage from './pages/SOSFeedbackPage'
 import SOSCelebrationPage from './pages/SOSCelebrationPage'
-// import ChatPage from './pages/ChatPage'
-// import InsightPage from './pages/InsightPage'
 
 function App() {
   const location = useLocation()
@@ -30,6 +30,32 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <HomePage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/chat" 
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChatPage />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/insight" 
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <InsightPage />
               </motion.div>
             } 
           />
