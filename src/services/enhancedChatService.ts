@@ -106,27 +106,41 @@ function extractEmotionTags(text: string): string[] {
  */
 export async function callDashScopeAPI(
   messages: ChatMessage[],
-  _onStream?: (chunk: string) => void
+  onStream?: (chunk: string) => void
 ): Promise<string> {
   if (!DASHSCOPE_API_KEY) {
     throw new Error('DashScope API密钥未配置')
   }
 
-  // 调试日志
   console.log('🔍 准备调用阿里千问API')
   console.log('📤 API URL:', DASHSCOPE_API_URL)
   console.log('🔑 API Key前缀:', DASHSCOPE_API_KEY.substring(0, 10) + '...')
   console.log('💬 消息数量:', messages.length)
+  console.log('🌊 流式响应模式:', !!onStream)
 
   try {
-    const response = await axios({
+    if (onStream) {
+      return await callWithStream(messages, onStream)
+    } else {
+      return await callWithoutStream(messages)
+    }
+  } catch (error) {
+    console.error('❌ API调用失败:', error)
+    throw error
+  }
+}
+
+async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void): Promise<string> {
+  console.log('🌊 使用流式响应模式')
+
+  try {
+    const response = await fetch(DASHSCOPE_API_URL, {
       method: 'POST',
-      url: DASHSCOPE_API_URL,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
       },
-      data: {
+      body: JSON.stringify({
         model: 'qwen-plus',
         messages: messages.map(msg => ({
           role: msg.role,
@@ -134,56 +148,108 @@ export async function callDashScopeAPI(
         })),
         temperature: 0.8,
         max_tokens: 150,
-        top_p: 0.9
-      },
-      timeout: 30000 // 30秒超时
+        top_p: 0.9,
+        stream: true
+      })
     })
 
-    // 调试日志 - 成功响应
-    console.log('✅ API调用成功')
-    console.log('📊 响应状态:', response.status)
-    console.log('📝 响应数据:', JSON.stringify(response.data).substring(0, 200) + '...')
+    console.log('✅ Fetch响应状态:', response.status)
 
-    // OpenAI兼容格式响应处理
-    if (response.data.error) {
-      console.error('❌ API返回错误:', response.data.error.message)
-      throw new Error(`DashScope API错误: ${response.data.error.message}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ API错误响应:', errorText)
+      throw new Error(`DashScope API错误: ${response.status} ${errorText}`)
     }
 
-    const content = response.data.choices[0].message.content
-    console.log('🎯 获得AI回复内容:', content.substring(0, 100) + '...')
-    return content
+    const decoder = new TextDecoder()
+    const reader = response.body?.getReader()
+    
+    if (!reader) {
+      throw new Error('无法获取响应流')
+    }
+
+    let fullContent = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          console.log('🎯 流式响应完成')
+          break
+        }
+        
+        const text = decoder.decode(value, { stream: true })
+        const lines = text.split('\n').filter(line => line.trim())
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            
+            if (data === '[DONE]') {
+              break
+            }
+            
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.choices && parsed.choices[0]?.delta?.content) {
+                const content = parsed.choices[0].delta.content
+                fullContent += content
+                onStream(content)
+              }
+            } catch (e) {
+              console.warn('解析流式数据失败:', e)
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    
+    return fullContent
 
   } catch (error) {
-    // 调试日志 - 错误信息
-    console.error('❌ API调用失败:', error)
-    if (axios.isAxiosError(error)) {
-      console.error('🔍 Axios错误详情:')
-      console.error('- 错误代码:', error.code)
-      console.error('- 响应状态:', error.response?.status)
-      console.error('- 响应数据:', error.response?.data)
-      console.error('- 请求配置:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        baseURL: error.config?.baseURL
-      })
-      
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('API请求超时，请稍后重试')
-      }
-      if (error.response?.status === 401) {
-        throw new Error('API密钥无效，请检查配置')
-      }
-      if (error.response?.status === 429) {
-        throw new Error('API调用次数过多，请稍后重试')
-      }
-      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        console.error('🌐 网络连接问题，可能是CORS或DNS问题')
-        throw new Error('网络连接问题，请检查网络或使用备用对话模式')
-      }
-    }
+    console.error('❌ 流式调用失败:', error)
     throw error
   }
+}
+
+async function callWithoutStream(messages: ChatMessage[]): Promise<string> {
+  console.log('📝 使用非流式响应模式')
+
+  const response = await axios({
+    method: 'POST',
+    url: DASHSCOPE_API_URL,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+    },
+    data: {
+      model: 'qwen-plus',
+      messages: messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      temperature: 0.8,
+      max_tokens: 150,
+      top_p: 0.9,
+      stream: false
+    },
+    timeout: 30000
+  })
+
+  console.log('✅ API调用成功')
+  console.log('📊 响应状态:', response.status)
+
+  if (response.data.error) {
+    console.error('❌ API返回错误:', response.data.error.message)
+    throw new Error(`DashScope API错误: ${response.data.error.message}`)
+  }
+
+  const content = response.data.choices[0].message.content
+  console.log('🎯 获得AI回复内容:', content.substring(0, 100) + '...')
+  return content
 }
 
 /**

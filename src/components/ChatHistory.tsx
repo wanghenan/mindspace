@@ -50,29 +50,28 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ x: '-100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '-100%' }}
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: '20rem', opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed inset-y-0 left-0 w-80 bg-white shadow-2xl z-50 flex flex-col"
+          className="h-full flex flex-col flex-shrink-0 overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-primary)' }}
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-primary-500 to-secondary-500 text-white px-6 py-4">
+          <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">对话历史</h2>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>对话历史</h2>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                className="p-2 rounded-full transition-all hover:opacity-80"
               >
                 ✕
               </button>
             </div>
           </div>
 
-          {/* Conversations List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {conversations.length === 0 ? (
-              <div className="text-center text-neutral-500 py-8">
+              <div className="text-center py-8" style={{ color: 'var(--text-secondary)' }}>
                 <p>还没有对话记录</p>
                 <p className="text-sm mt-2">开始第一次对话吧</p>
               </div>
@@ -81,28 +80,30 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                 <motion.div
                   key={conversation.id}
                   layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-neutral-50 rounded-lg p-4 hover:bg-neutral-100 transition-colors cursor-pointer group"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="rounded-lg p-4 transition-all cursor-pointer group hover:opacity-80"
+                  style={{ backgroundColor: 'var(--bg-secondary)' }}
                 >
                   <div
                     onClick={() => onSelectConversation(conversation)}
                     className="mb-3"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-neutral-600">
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                         {formatDate(conversation.startTime)}
                       </span>
-                      <span className="text-xs bg-primary-100 text-primary-600 px-2 py-1 rounded-full">
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}>
                         {conversation.messages.length} 条消息
                       </span>
                     </div>
                     {conversation.emotionSummary && (
-                      <div className="text-xs text-primary-600 mb-1">
+                      <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
                         🏷️ {conversation.emotionSummary}
                       </div>
                     )}
-                    <p className="text-sm text-neutral-700 line-clamp-2">
+                    <p className="text-sm line-clamp-2" style={{ color: 'var(--text-primary)' }}>
                       {getPreview(conversation)}
                     </p>
                   </div>
@@ -113,18 +114,17 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                         e.stopPropagation()
                         handleDelete(conversation.id)
                       }}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        deleteConfirm === conversation.id
-                          ? 'bg-red-500 text-white'
-                          : 'bg-red-100 text-red-600 hover:bg-red-200'
-                      }`}
+                      className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: deleteConfirm === conversation.id ? '#ef4444' : 'var(--bg-card)',
+                        color: deleteConfirm === conversation.id ? '#ffffff' : '#ef4444'
+                      }}
                     >
                       {deleteConfirm === conversation.id ? '确认删除?' : '删除'}
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        // 导出功能
                         const text = useChatStore.getState().exportConversation(conversation.id)
                         const blob = new Blob([text], { type: 'text/plain' })
                         const url = URL.createObjectURL(blob)
@@ -134,7 +134,8 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                         a.click()
                         URL.revokeObjectURL(url)
                       }}
-                      className="flex-1 py-2 px-3 bg-neutral-200 text-neutral-700 rounded-lg text-sm font-medium hover:bg-neutral-300 transition-colors"
+                      className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                      style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
                     >
                       导出
                     </button>
@@ -144,15 +145,15 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-neutral-200 p-4">
+          <div className="p-4">
             <button
               onClick={() => {
                 if (confirm('确定要清空所有对话记录吗？此操作不可恢复。')) {
                   useChatStore.getState().clearAllConversations()
                 }
               }}
-              className="w-full py-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+              className="w-full py-3 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+              style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
             >
               清空所有对话
             </button>

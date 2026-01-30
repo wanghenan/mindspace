@@ -103,7 +103,7 @@ const SOSCelebrationPage = () => {
 
       {/* 庆祝内容页面 */}
       {showContent && (
-        <div className="flex flex-col items-center justify-center min-h-screen px-6">
+        <div className="flex flex-col items-center justify-center min-h-screen px-6" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
           {/* Header */}
           <motion.div
             initial={{ y: -20, opacity: 0 }}
@@ -112,7 +112,7 @@ const SOSCelebrationPage = () => {
             className="text-center mb-8"
           >
             <div className="text-4xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-neutral-800 mb-2">
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
               {celebrationContent.title}
             </h2>
           </motion.div>
@@ -122,14 +122,15 @@ const SOSCelebrationPage = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="card w-full max-w-sm mb-6"
+            className="w-full max-w-sm mb-6 p-6 rounded-xl"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
             <div className="text-center">
-              <p className="text-neutral-700 leading-relaxed mb-4">
+              <p className="leading-relaxed mb-4" style={{ color: 'var(--text-primary)' }}>
                 {celebrationContent.message}
               </p>
-              <div className="pt-4 border-t border-neutral-100">
-                <p className="text-sm text-primary-600 font-medium">
+              <div className="pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>
                   💡 {celebrationContent.insight}
                 </p>
               </div>
@@ -145,20 +146,28 @@ const SOSCelebrationPage = () => {
           >
             <motion.button
               onClick={handleContinueChat}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              还想继续聊一聊 💬
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              还想继续聊一聊
             </motion.button>
-            
+
             <motion.button
               onClick={handleBackHome}
-              className="btn-secondary w-full"
+              className="w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              回到首页 🏠
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              回到首页
             </motion.button>
           </motion.div>
 
@@ -169,10 +178,10 @@ const SOSCelebrationPage = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="mt-8 text-center"
           >
-            <p className="text-xs text-neutral-500 mb-2">
+            <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
               记住，每一次的自我关怀都很珍贵
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs" style={{ color: 'var(--text-secondary)', opacity: 0.7 }}>
               MindSpace 随时在这里陪伴你 💙
             </p>
           </motion.div>

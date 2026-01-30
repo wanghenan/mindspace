@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -17,9 +18,10 @@ function App() {
   const location = useLocation()
 
   return (
-    <Layout>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+    <ErrorBoundary>
+      <Layout>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
           <Route 
             path="/" 
             element={
@@ -127,8 +129,9 @@ function App() {
           />
           {/* 其他路由将逐步添加 */}
         </Routes>
-      </AnimatePresence>
-    </Layout>
+        </AnimatePresence>
+      </Layout>
+    </ErrorBoundary>
   )
 }
 

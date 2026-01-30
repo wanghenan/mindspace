@@ -11,7 +11,7 @@ interface ChatStore {
   // 操作
   createConversation: (emotionContext?: string) => string
   getCurrentConversation: () => Conversation | null
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => string
   updateMessage: (messageId: string, content: string) => void
   deleteConversation: (conversationId: string) => void
   clearAllConversations: () => void
@@ -59,7 +59,7 @@ export const useChatStore = create<ChatStore>()(
       addMessage: (message) => {
         const state = get()
         const { currentConversationId } = state
-        if (!currentConversationId) return
+        if (!currentConversationId) return ''
         
         const newMessage: Message = {
           ...message,
@@ -74,6 +74,8 @@ export const useChatStore = create<ChatStore>()(
               : conv
           )
         })
+        
+        return newMessage.id
       },
       
       // 更新消息（用于AI流式回复）

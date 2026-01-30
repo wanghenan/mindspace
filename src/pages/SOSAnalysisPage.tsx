@@ -101,7 +101,7 @@ const SOSAnalysisPage = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
@@ -115,15 +115,15 @@ const SOSAnalysisPage = () => {
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             className="w-16 h-16 mx-auto mb-4"
           >
-            <div className="w-full h-full bg-gradient-to-r from-primary-500 to-secondary-500 rounded-full flex items-center justify-center">
-              <span className="text-2xl text-white">💙</span>
+            <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)' }}>
+              <span className="text-2xl">💙</span>
             </div>
           </motion.div>
         </div>
-        <h2 className="text-2xl font-bold text-neutral-800 mb-2">
+        <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
           我在认真了解你的感受
         </h2>
-        <p className="text-neutral-600 text-sm">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           每个人的情绪都值得被温柔对待
         </p>
       </motion.div>
@@ -133,26 +133,27 @@ const SOSAnalysisPage = () => {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="card w-full max-w-sm mb-8"
+        className="w-full max-w-sm mb-8 p-6 rounded-xl"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
-        <h3 className="font-medium text-neutral-800 mb-3">我听到了这些</h3>
+        <h3 className="font-medium mb-3" style={{ color: 'var(--text-primary)' }}>我听到了这些</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-neutral-600">难受程度:</span>
-            <span className="text-neutral-800 font-medium">{getIntensityText(state?.intensity)}</span>
+            <span style={{ color: 'var(--text-secondary)' }}>难受程度:</span>
+            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{getIntensityText(state?.intensity)}</span>
           </div>
           {state?.bodyFeelings && state.bodyFeelings.length > 0 && (
             <div className="flex justify-between">
-              <span className="text-neutral-600">身体感受:</span>
-              <span className="text-neutral-800 font-medium text-right flex-1 ml-2">
+              <span style={{ color: 'var(--text-secondary)' }}>身体感受:</span>
+              <span className="font-medium text-right flex-1 ml-2" style={{ color: 'var(--text-primary)' }}>
                 {getBodyFeelingText(state.bodyFeelings)}
               </span>
             </div>
           )}
           {state?.customInput && (
-            <div className="pt-2 border-t border-neutral-100">
-              <span className="text-neutral-600 text-xs">详细描述:</span>
-              <p className="text-neutral-800 text-xs mt-1 leading-relaxed">
+            <div className="pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>详细描述:</span>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                 "{state.customInput}"
               </p>
             </div>
@@ -171,17 +172,17 @@ const SOSAnalysisPage = () => {
           <motion.div
             key={index}
             initial={{ x: -20, opacity: 0 }}
-            animate={{ 
-              x: 0, 
+            animate={{
+              x: 0,
               opacity: analysisStep >= index ? 1 : 0.3,
               scale: analysisStep === index ? 1.05 : 1
             }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
-            className={`flex items-center gap-3 p-3 rounded-xl mb-2 transition-all ${
-              analysisStep >= index 
-                ? 'bg-primary-50 text-primary-700' 
-                : 'bg-neutral-50 text-neutral-500'
-            }`}
+            className="flex items-center gap-3 p-3 rounded-xl mb-2 transition-all"
+            style={{
+              backgroundColor: analysisStep >= index ? 'var(--bg-secondary)' : 'var(--bg-card)',
+              color: analysisStep >= index ? 'var(--text-primary)' : 'var(--text-secondary)'
+            }}
           >
             <span className="text-xl">{step.icon}</span>
             <span className="font-medium text-sm">{step.text}</span>
@@ -191,14 +192,15 @@ const SOSAnalysisPage = () => {
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 className="ml-auto"
               >
-                <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+                <div className="w-4 h-4 rounded-full" style={{ border: '2px solid var(--accent)', borderTopColor: 'transparent' }}></div>
               </motion.div>
             )}
             {analysisStep > index && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="ml-auto text-primary-500"
+                className="ml-auto"
+                style={{ color: 'var(--accent)' }}
               >
                 ✓
               </motion.div>
@@ -216,7 +218,7 @@ const SOSAnalysisPage = () => {
           className="text-center"
         >
           <div className="text-2xl mb-2">✨</div>
-          <p className="text-primary-600 font-medium">
+          <p className="font-medium" style={{ color: 'var(--accent)' }}>
             好了！我为你准备了一个特别的方法
           </p>
         </motion.div>
@@ -231,7 +233,7 @@ const SOSAnalysisPage = () => {
           className="text-center"
         >
           <div className="text-2xl mb-2">⚠️</div>
-          <p className="text-orange-600 font-medium text-sm">
+          <p className="font-medium text-sm" style={{ color: '#f97316' }}>
             {error}
           </p>
         </motion.div>
@@ -243,7 +245,10 @@ const SOSAnalysisPage = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 1 }}
         onClick={() => navigate('/sos/emotion')}
-        className="btn-secondary mt-8 flex items-center justify-center gap-2"
+        className="mt-8 px-6 py-3 rounded-xl flex items-center justify-center gap-2"
+        style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         <span className="text-lg arrow-left">←</span>
         重新告诉我

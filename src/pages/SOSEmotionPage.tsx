@@ -63,7 +63,7 @@ const SOSEmotionPage = () => {
   const hasRequiredInput = emotionIntensity !== ''
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
@@ -74,10 +74,10 @@ const SOSEmotionPage = () => {
         <div className="mb-4">
           <span className="text-4xl">💙</span>
         </div>
-        <h2 className="text-2xl font-bold text-neutral-800 mb-2">
+        <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
           你现在怎么了？
         </h2>
-        <p className="text-neutral-600 text-sm">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
           我们一步步来了解你的感受
         </p>
       </motion.div>
@@ -89,7 +89,7 @@ const SOSEmotionPage = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <h3 className="text-lg font-medium text-neutral-800 mb-4 text-center">
+          <h3 className="text-lg font-medium mb-4 text-center" style={{ color: 'var(--text-primary)' }}>
             你现在感觉有多难受？
           </h3>
           <div className="grid grid-cols-2 gap-3">
@@ -102,16 +102,17 @@ const SOSEmotionPage = () => {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   onClick={() => handleIntensitySelect(option.id)}
-                  className={`p-4 rounded-2xl border-2 transition-all text-center ${
-                    isSelected
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-neutral-200 hover:border-neutral-300 text-neutral-700'
-                  }`}
+                  className="p-4 rounded-2xl border-2 transition-all text-center"
+                  style={{
+                    borderColor: isSelected ? 'var(--accent)' : 'var(--border-color)',
+                    backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
+                    color: 'var(--text-primary)'
+                  }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <div className="text-2xl mb-2">{option.emoji}</div>
                   <div className="font-medium text-sm mb-1">{option.text}</div>
-                  <div className="text-xs text-neutral-500">{option.description}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{option.description}</div>
                 </motion.button>
               )
             })}
@@ -125,10 +126,10 @@ const SOSEmotionPage = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h3 className="text-lg font-medium text-neutral-800 mb-4 text-center">
+            <h3 className="text-lg font-medium mb-4 text-center" style={{ color: 'var(--text-primary)' }}>
               你的身体有什么感觉？
             </h3>
-            <p className="text-sm text-neutral-500 text-center mb-4">
+            <p className="text-sm text-center mb-4" style={{ color: 'var(--text-secondary)' }}>
               最多选择3个，可以不选
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -141,18 +142,20 @@ const SOSEmotionPage = () => {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.03 }}
                     onClick={() => handleBodyFeelingToggle(feeling.id)}
-                    className={`p-3 rounded-xl border transition-all text-center relative ${
-                      isSelected
-                        ? 'border-secondary-400 bg-secondary-50 text-secondary-700'
-                        : 'border-neutral-200 hover:border-neutral-300 text-neutral-700'
-                    }`}
+                    className="p-3 rounded-xl border transition-all text-center relative"
+                    style={{
+                      borderColor: isSelected ? 'var(--accent)' : 'var(--border-color)',
+                      backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
+                      color: 'var(--text-primary)'
+                    }}
                     whileTap={{ scale: 0.95 }}
                   >
                     {isSelected && (
                       <motion.div
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="absolute top-1 right-1 w-4 h-4 bg-secondary-500 rounded-full flex items-center justify-center"
+                        className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--accent)' }}
                       >
                         <span className="text-white text-xs font-bold">✓</span>
                       </motion.div>
@@ -164,7 +167,7 @@ const SOSEmotionPage = () => {
               })}
             </div>
             {bodyFeelings.length > 0 && (
-              <p className="text-xs text-center text-neutral-500 mt-2">
+              <p className="text-xs text-center mt-2" style={{ color: 'var(--text-secondary)' }}>
                 已选择 {bodyFeelings.length}/3 个
               </p>
             )}
@@ -178,10 +181,10 @@ const SOSEmotionPage = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h3 className="text-lg font-medium text-neutral-800 mb-4 text-center">
+            <h3 className="text-lg font-medium mb-4 text-center" style={{ color: 'var(--text-primary)' }}>
               还想告诉我什么吗？
             </h3>
-            <p className="text-sm text-neutral-500 text-center mb-4">
+            <p className="text-sm text-center mb-4" style={{ color: 'var(--text-secondary)' }}>
               可以详细说说发生了什么（选填）
             </p>
             <div className="relative">
@@ -189,11 +192,16 @@ const SOSEmotionPage = () => {
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
                 placeholder="比如：刚才开会被批评了，感觉很委屈..."
-                className="w-full p-4 border border-neutral-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
+                className="w-full p-4 border rounded-2xl resize-none focus:outline-none transition-all text-sm"
+                style={{
+                  borderColor: 'var(--border-color)',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)'
+                }}
                 rows={3}
                 maxLength={200}
               />
-              <div className="absolute bottom-2 right-2 text-xs text-neutral-400">
+              <div className="absolute bottom-2 right-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {customInput.length}/200
               </div>
             </div>
@@ -208,7 +216,8 @@ const SOSEmotionPage = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
           onClick={handleContinue}
-          className="btn-primary w-full max-w-sm mt-8 mb-4 flex items-center justify-center gap-3"
+          className="w-full max-w-sm mt-8 mb-4 flex items-center justify-center gap-3 py-3 rounded-xl text-white font-medium transition-all hover:opacity-90"
+          style={{ backgroundColor: 'var(--accent)' }}
           whileTap={{ scale: 0.95 }}
         >
           下一步
@@ -222,7 +231,8 @@ const SOSEmotionPage = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}
         onClick={() => navigate('/')}
-        className="btn-secondary flex items-center justify-center gap-2 mb-8"
+        className="flex items-center justify-center gap-2 mb-8 px-6 py-3 rounded-xl font-medium transition-all hover:opacity-80"
+        style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
       >
         <span className="text-lg arrow-left">←</span>
         返回首页
