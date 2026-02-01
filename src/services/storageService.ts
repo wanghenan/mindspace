@@ -63,6 +63,23 @@ export const emotionStorage = {
     return true;
   },
 
+  async update(id: string, updates: Partial<Omit<EmotionRecord, 'id' | 'timestamp'>>): Promise<EmotionRecord | null> {
+    const all = await this.getAll();
+    const index = all.findIndex(r => r.id === id);
+    
+    if (index === -1) return null;
+    
+    const updated = {
+      ...all[index],
+      ...updates
+    };
+    
+    all[index] = updated;
+    await set(STORAGE_KEYS.EMOTIONS, all);
+    
+    return updated;
+  },
+
   async getByDateRange(startDate: number, endDate: number): Promise<EmotionRecord[]> {
     const all = await this.getAll();
     return all.filter(r => r.timestamp >= startDate && r.timestamp <= endDate);

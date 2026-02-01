@@ -78,6 +78,16 @@ const ChatPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return
 
+    // 发送前检查 API Key
+    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+    const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+    
+    if (!envKey && !localKey) {
+      console.log('[ChatPage] 没有配置 API Key，显示配置弹窗')
+      setShowApiKeyModal(true)
+      return
+    }
+
     const userMessage = {
       role: 'user' as const,
       content: inputValue.trim()
@@ -131,18 +141,6 @@ const ChatPage: React.FC = () => {
 
     } catch (error: any) {
       console.error('发送消息失败:', error)
-      
-      // 如果是 API Key 未配置错误，显示配置弹窗
-      if (error.code === 'DASHSCOPE_API_KEY_MISSING' || error.message?.includes('API密钥未配置')) {
-        setShowApiKeyModal(true)
-        const errorMessage = {
-          role: 'assistant' as const,
-          content: '我需要配置一下才能和你聊天呢。请在弹出的窗口中输入你的阿里百炼 API Key。'
-        }
-        addMessage(errorMessage)
-        setTyping(false)
-        return
-      }
       
       const errorMessage = {
         role: 'assistant' as const,

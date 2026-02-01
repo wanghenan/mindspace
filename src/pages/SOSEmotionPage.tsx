@@ -63,8 +63,9 @@ const SOSEmotionPage = () => {
       customInput
     })
     
+    let recordId = null
     try {
-      await addEmotionRecord({
+      const newRecord = await addEmotionRecord({
         emotion: '待分析',  // 待AI分析后更新
         intensity: intensityValue,
         trigger: customInput.trim() || undefined,
@@ -72,18 +73,20 @@ const SOSEmotionPage = () => {
         copingMethod: 'sos-initial',
         effectiveness: undefined  // 尚未评估
       })
-      console.log('[SOSEmotionPage] ✅ 初步情绪记录保存成功')
+      recordId = newRecord.id
+      console.log('[SOSEmotionPage] ✅ 初步情绪记录保存成功, ID:', recordId)
     } catch (error) {
       console.error('[SOSEmotionPage] ❌ 保存初步情绪记录失败:', error)
     }
     
-    // 跳转到AI分析页面
+    // 跳转到AI分析页面，携带记录ID用于后续更新
     navigate('/sos/analysis', {
       state: {
         intensity: emotionIntensity,
         bodyFeelings,
         customInput: customInput.trim(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        emotionRecordId: recordId  // 传递记录ID
       }
     })
   }

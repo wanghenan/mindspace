@@ -14,6 +14,7 @@ interface LocationState {
   customInput: string
   timestamp: number
   analysisResult?: EmotionAnalysisResult
+  emotionRecordId?: string  // 情绪记录ID，用于更新而不是创建新记录
 }
 
 const SOSCardPage = () => {
@@ -59,32 +60,51 @@ const SOSCardPage = () => {
   }, [emotionType, navigate])
 
   const handleComplete = async () => {
-    console.log('[SOSCardPage] 行动完成，开始保存记录...')
+    console.log('[SOSCardPage] 行动完成，开始更新情绪记录...')
     console.log('[SOSCardPage] 情绪数据:', {
       emotionType: analysisResult?.emotionType || emotionType,
       intensity: state?.intensity || 'moderate',
       trigger: state?.customInput,
-      context: state?.bodyFeelings?.join(', ')
+      context: state?.bodyFeelings?.join(', '),
+      emotionRecordId: state?.emotionRecordId
     })
     
-    // 在这里直接保存情绪记录
     const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
     const intensityValue = state?.intensity === 'extreme' ? 10 : 
                           state?.intensity === 'severe' ? 8 : 
                           state?.intensity === 'moderate' ? 5 : 3
     
-    try {
-      await addEmotionRecord({
-        emotion: emotionTypeStr,
-        intensity: intensityValue,
-        trigger: state?.customInput || undefined,
-        context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
-        copingMethod: 'sos-first-aid',
-        effectiveness: 4  // 感觉好多了
-      })
-      console.log('[SOSCardPage] ✅ 情绪记录保存成功')
-    } catch (error) {
-      console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+    // 如果有记录ID，更新现有记录；否则创建新记录
+    if (state?.emotionRecordId) {
+      console.log('[SOSCardPage] 更新现有情绪记录, ID:', state.emotionRecordId)
+      try {
+        await useAppStore.getState().updateEmotionRecord(state.emotionRecordId, {
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4  // 感觉好多了
+        })
+        console.log('[SOSCardPage] ✅ 情绪记录更新成功')
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 更新情绪记录失败:', error)
+      }
+    } else {
+      console.log('[SOSCardPage] 没有记录ID，创建新记录')
+      try {
+        await addEmotionRecord({
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4  // 感觉好多了
+        })
+        console.log('[SOSCardPage] ✅ 情绪记录保存成功')
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+      }
     }
     
     // 跳转到合并后的反馈/庆祝页面
