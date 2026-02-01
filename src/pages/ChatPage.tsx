@@ -391,14 +391,27 @@ const ChatPage: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowApiKeyModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="rounded-2xl p-6 max-w-md w-full transition-colors"
+              className="rounded-2xl p-6 max-w-md w-full transition-colors relative"
               style={{ backgroundColor: 'var(--bg-card)' }}
+              onClick={(e) => e.stopPropagation()}
             >
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowApiKeyModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
               <div className="text-center mb-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl text-white font-bold">M</span>
