@@ -1,0 +1,66 @@
+// 情绪记录类型
+export interface EmotionRecord {
+  id: string;
+  emotion: string;           // 情绪类型：焦虑、悲伤、愤怒、平静、疲惫等
+  intensity: number;         // 强度：1-10
+  trigger?: string;          // 触发因素
+  context?: string;          // 详细描述
+  copingMethod?: string;     // 应对方法
+  effectiveness?: number;    // 效果评价：1-5
+  timestamp: number;         // 时间戳
+  tags?: string[];           // 自动生成的情绪标签
+}
+
+// SOS 使用记录
+export interface SOSRecord {
+  id: string;
+  triggerEmotion: string;    // 触发情绪
+  selectedAidType: string;   // 急救类型
+  duration: number;          // 使用时长（秒）
+  feedback?: number;         // 效果反馈：1-5
+  followUpAction?: string;   // 后续行动
+  timestamp: number;
+}
+
+// 对话消息
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+// 对话会话
+export interface ChatSession {
+  id: string;
+  messages: ChatMessage[];
+  autoTags?: {
+    primaryEmotion: string;
+    intensity: number;
+    topics: string[];
+  };
+  summary?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// 用户偏好
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto';
+  language: string;
+  notifications: boolean;
+  privacyMode: boolean;      // 隐私模式开关
+  defaultView: 'home' | 'sos' | 'chat' | 'insight';
+  aiPersonality: 'empathetic' | 'rational' | 'concise';
+  autoSave: boolean;
+}
+
+// 存储元数据
+export interface StorageMetadata {
+  version: string;
+  createdAt: number;
+  lastUpdated: number;
+  emotionCount: number;
+  chatCount: number;
+  firstUseDate: number;
+}
