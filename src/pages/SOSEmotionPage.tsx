@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import { useAppStore } from '../store/useAppStore'
 
 const SOSEmotionPage = () => {
   const navigate = useNavigate()
   const [emotionIntensity, setEmotionIntensity] = useState<string>('')
   const [bodyFeelings, setBodyFeelings] = useState<string[]>([])
   const [customInput, setCustomInput] = useState('')
+  const addEmotionRecord = useAppStore(state => state.addEmotionRecord)
 
   // 情绪强度选项
   const intensityOptions = [
@@ -46,16 +48,45 @@ const SOSEmotionPage = () => {
     })
   }
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!emotionIntensity) return
     
-    // 跳转到AI分析页面
+    // 立即保存情绪记录（初步记录，不包含分析结果）
+    const intensityValue = emotionIntensity === 'extreme' ? 10 : 
+                          emotionIntensity === 'severe' ? 8 : 
+                          emotionIntensity === 'moderate' ? 5 : 3
+    
+    console.log('[SOSEmotionPage] 保存初步情绪记录:', {
+      intensity: emotionIntensity,
+      intensityValue,
+      bodyFeelings,
+      customInput
+    })
+    
+    let recordId = null
+    try {
+      const newRecord = await addEmotionRecord({
+        emotion: '待分析',  // 待AI分析后更新
+        intensity: intensityValue,
+        trigger: customInput.trim() || undefined,
+        context: bodyFeelings.length ? bodyFeelings.join(', ') : undefined,
+        copingMethod: 'sos-initial',
+        effectiveness: undefined  // 尚未评估
+      })
+      recordId = newRecord.id
+      console.log('[SOSEmotionPage] ✅ 初步情绪记录保存成功, ID:', recordId)
+    } catch (error) {
+      console.error('[SOSEmotionPage] ❌ 保存初步情绪记录失败:', error)
+    }
+    
+    // 跳转到AI分析页面，携带记录ID用于后续更新
     navigate('/sos/analysis', {
       state: {
         intensity: emotionIntensity,
         bodyFeelings,
         customInput: customInput.trim(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        emotionRecordId: recordId  // 传递记录ID
       }
     })
   }

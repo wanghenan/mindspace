@@ -333,10 +333,27 @@ git push -u origin feature/data-persistence
 
 ## 🎯 下一步
 
-1. **推送代码** - 使用上述任一方式推送到远程
-2. **创建 PR** - 访问 GitHub 创建 Pull Request
-3. **等待审核** - 项目负责人会审查代码
-4. **响应反馈** - 根据审查意见进行调整
+1. **推送代码** - 由于 GitHub Token 权限问题，需要手动推送：
+   ```bash
+   cd mindspace
+   git push -u origin feature/data-persistence
+   ```
+
+2. **创建 PR** - 访问 https://github.com/gl15121004754-hue/mindspace/tree/feature/data-persistence
+   - 点击 "Create Pull Request"
+   - 使用上述 PR 模板
+
+3. **或者使用 GitHub CLI**（需要先安装）：
+   ```bash
+   brew install gh
+   gh auth login
+   gh pr create --title "feat: 完善主题切换、API Key配置和隐私合规" \
+     --body "$(cat PR_SUBMISSION_GUIDE.md | sed -n '/## 📝 PR 模板/,/```$/p')" \
+     --base main --head feature/data-persistence
+   ```
+
+4. **等待审核** - 项目负责人会审查代码
+5. **响应反馈** - 根据审查意见进行调整
 
 ## 📞 联系方式
 

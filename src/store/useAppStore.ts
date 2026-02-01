@@ -32,7 +32,8 @@ interface AppState {
   initializeApp: () => Promise<void>;
 
   // Actions - 情绪历史
-  addEmotionRecord: (record: Omit<EmotionRecord, 'id' | 'timestamp'>) => Promise<void>;
+  addEmotionRecord: (record: Omit<EmotionRecord, 'id' | 'timestamp'>) => Promise<EmotionRecord>;
+  updateEmotionRecord: (id: string, updates: Partial<Omit<EmotionRecord, 'id' | 'timestamp'>>) => Promise<EmotionRecord | null>;
   deleteEmotionRecord: (id: string) => Promise<boolean>;
   getRecentEmotions: (limit: number) => Promise<EmotionRecord[]>;
 
@@ -100,31 +101,48 @@ export const useAppStore = create<AppState>()(
 
     // 情绪历史
     addEmotionRecord: async (record) => {
-      const newRecord = await emotionStorage.add(record);
+      const newRecord = await emotionStorage.add(record)
       
       set(state => ({
         emotionHistory: [newRecord, ...state.emotionHistory]
-      }));
+      }))
 
       // 更新存储统计
-      await get().loadStorageStats();
+      await get().loadStorageStats()
+      
+      return newRecord
     },
 
-    deleteEmotionRecord: async (id) => {
-      const success = await emotionStorage.delete(id);
+    updateEmotionRecord: async (id: string, updates: Record<string, unknown>) => {
+      const updated = await emotionStorage.update(id, updates)
+      
+      if (updated) {
+        set(state => ({
+          emotionHistory: state.emotionHistory.map(r =>
+            r.id === id ? updated : r
+          )
+        }))
+        await get().loadStorageStats()
+      }
+      
+      return updated
+    },
+
+    deleteEmotionRecord: async (id: string) => {
+      const success = await emotionStorage.delete(id)
       
       if (success) {
         set(state => ({
           emotionHistory: state.emotionHistory.filter(r => r.id !== id)
-        }));
-        await get().loadStorageStats();
+        }))
+        await get().loadStorageStats()
       }
       
-      return success;
+      return success
     },
 
-    getRecentEmotions: async (limit) => {
-      return await emotionStorage.getRecent(limit);
+    getRecentEmotions: async (limit: number) => {
+      return await emotionStorage.getRecent(limit)
     },
 
     // 对话历史

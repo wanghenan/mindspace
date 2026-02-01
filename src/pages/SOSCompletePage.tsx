@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import CelebrationAnimation from '../components/CelebrationAnimation'
 import { FirstAidSuggestion } from '../types'
 import { EmotionType } from '../data/firstAidContent'
-import { EmotionAnalysisResult } from '../services/aiService'
 
 interface LocationState {
   emotionType?: EmotionType
@@ -13,52 +12,46 @@ interface LocationState {
   intensity?: string
   bodyFeelings?: string[]
   customInput?: string
-  analysisResult?: EmotionAnalysisResult
+  analysisResult?: {
+    emotionType?: string
+  }
 }
 
-const SOSCelebrationPage = () => {
+const SOSCompletePage = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const state = location.state as LocationState
   const [showCelebration, setShowCelebration] = useState(true)
   const [showContent, setShowContent] = useState(false)
-  
-  const state = location.state as LocationState
 
-  // 动态生成庆祝内容
-  const generateCelebrationContent = () => {
-    const contents = [
-      {
-        title: "你真的很棒！",
-        message: "刚才的60秒里，你选择了面对而不是逃避，这需要很大的勇气。",
-        insight: "每一次主动调节情绪，都是在为自己的心理健康投资。"
-      },
-      {
-        title: "为你感到骄傲！",
-        message: "在情绪最难受的时候，你没有被它淹没，而是选择了行动。",
-        insight: "这种自我关怀的能力，会让你在未来的挑战中更加坚韧。"
-      },
-      {
-        title: "你做得太好了！",
-        message: "刚才的练习不仅帮助了当下的你，也在训练你的情绪调节能力。",
-        insight: "科学研究表明，这样的练习会让大脑更善于处理压力。"
-      },
-      {
-        title: "真的很了不起！",
-        message: "在最需要帮助的时候选择自助，这是一种非常成熟的应对方式。",
-        insight: "你正在成为自己最好的朋友和支持者。"
-      },
-      {
-        title: "你值得被赞美！",
-        message: "刚才的每一个深呼吸、每一个动作，都是在告诉自己'我值得被好好对待'。",
-        insight: "这种自我疼惜的态度，是心理健康的重要基石。"
-      }
-    ]
+  // 庆祝内容
+  const celebrationContents = [
+    {
+      title: "你真的很棒！",
+      message: "刚才的60秒里，你选择了面对而不是逃避，这需要很大的勇气。",
+      insight: "每一次主动调节情绪，都是在为自己的心理健康投资。"
+    },
+    {
+      title: "为你感到骄傲！",
+      message: "在情绪最难受的时候，你没有被它淹没，而是选择了行动。",
+      insight: "这种自我关怀的能力，会让你在未来的挑战中更加坚韧。"
+    },
+    {
+      title: "你做得太好了！",
+      message: "刚才的练习不仅帮助了当下的你，也在训练你的情绪调节能力。",
+      insight: "科学研究表明，这样的练习会让大脑更善于处理压力。"
+    },
+    {
+      title: "真的很了不起！",
+      message: "在最需要帮助的时候选择自助，这是一种非常成熟的应对方式。",
+      insight: "你正在成为自己最好的朋友和支持者。"
+    }
+  ]
 
-    // 根据情绪类型和强度个性化内容
-    const randomContent = contents[Math.floor(Math.random() * contents.length)]
-    
-    // 添加个性化元素
+  const getCelebrationContent = () => {
+    const randomContent = celebrationContents[Math.floor(Math.random() * celebrationContents.length)]
     let personalizedMessage = randomContent.message
+    
     if (state.intensity === 'extreme') {
       personalizedMessage += " 特别是在感觉快要崩溃的时候，你依然选择了积极应对，这真的很不容易。"
     } else if (state.intensity === 'severe') {
@@ -71,7 +64,7 @@ const SOSCelebrationPage = () => {
     }
   }
 
-  const [celebrationContent] = useState(() => generateCelebrationContent())
+  const [celebrationContent] = useState(() => getCelebrationContent())
 
   const handleCelebrationComplete = () => {
     setShowCelebration(false)
@@ -82,25 +75,13 @@ const SOSCelebrationPage = () => {
     navigate('/chat', { 
       state: { 
         fromSOS: true,
-        emotionType: state.emotionType,
-        celebrationCompleted: true
+        emotionType: state.emotionType
       } 
     })
   }
 
   const handleBackHome = () => {
-    // 跳转到反馈页面保存记录，然后返回首页
-    navigate('/sos/feedback', { 
-      state: { 
-        emotionType: state.emotionType,
-        intensity: state.intensity,
-        bodyFeelings: state.bodyFeelings,
-        customInput: state.customInput,
-        analysisResult: state.analysisResult,
-        completed: true,
-        fromCelebration: true  // 标记来自庆祝页面，直接返回首页
-      } 
-    })
+    navigate('/', { replace: true, state: null })
   }
 
   return (
@@ -111,7 +92,7 @@ const SOSCelebrationPage = () => {
         onComplete={handleCelebrationComplete}
       />
 
-      {/* 庆祝内容页面 */}
+      {/* 合并后的完成页面内容 */}
       {showContent && (
         <div className="flex flex-col items-center justify-center min-h-screen px-6" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
           {/* Header */}
@@ -127,7 +108,7 @@ const SOSCelebrationPage = () => {
             </h2>
           </motion.div>
 
-          {/* 个性化庆祝内容 */}
+          {/* 庆祝内容卡片 */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -201,4 +182,4 @@ const SOSCelebrationPage = () => {
   )
 }
 
-export default SOSCelebrationPage
+export default SOSCompletePage

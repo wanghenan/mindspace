@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { useChatStore } from '../store/chatStore';
 import { motion } from 'framer-motion';
 
 export default function PrivacySettingsPage() {
@@ -9,6 +10,10 @@ export default function PrivacySettingsPage() {
     exportAllData,
     deleteAllData
   } = useAppStore();
+  
+  // 从 chatStore 获取对话数量（实际存储的位置）
+  const conversations = useChatStore(state => state.conversations);
+  const chatCount = conversations.length;
 
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -98,7 +103,7 @@ export default function PrivacySettingsPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span style={{ color: 'var(--text-secondary)' }}>对话历史</span>
-                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{storageStats.chatCount} 条</span>
+                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{chatCount} 条</span>
               </div>
               <div className="flex justify-between items-center">
                 <span style={{ color: 'var(--text-secondary)' }}>总存储空间</span>
