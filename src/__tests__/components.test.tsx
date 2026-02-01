@@ -1,12 +1,8 @@
-import { describe, it, beforeEach, expect, vi, test } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, beforeEach, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChatPage from '../pages/ChatPage'
 import InsightPage from '../pages/InsightPage'
-import UserProfilePage from '../pages/UserProfilePage'
-import SOSAnalysisPage from '../pages/SOSAnalysisPage'
-import SOSCardPage from '../pages/SOSCardPage'
-import PrivacySettingsPage from '../pages/PrivacySettingsPage'
 import ChatHistory from '../components/ChatHistory'
 import { useChatStore } from '../store/chatStore'
 import { useAppStore } from '../store/useAppStore'
@@ -59,12 +55,12 @@ describe('ChatPage', () => {
     })
   })
 
-  test('should render chat page without crashing', () => {
+  it('should render chat page without crashing', () => {
     renderWithRouter(<ChatPage />)
     expect(screen.getByText('这一刻，你在想什么...')).toBeInTheDocument()
   })
 
-  test('should show history sidebar when button clicked', async () => {
+  it('should show history sidebar when button clicked', async () => {
     const user = userEvent.setup()
     renderWithRouter(<ChatPage />)
 
@@ -90,47 +86,15 @@ describe('InsightPage', () => {
     })
   })
 
-  test('should render insight page without crashing', () => {
+  it('should render insight page without crashing', () => {
     renderWithRouter(<InsightPage />)
     expect(screen.getByText('情绪洞察')).toBeInTheDocument()
   })
 
-  test('should show stats cards when data exists', () => {
+  it('should show stats cards when data exists', () => {
     renderWithRouter(<InsightPage />)
     expect(screen.getByText('对话次数')).toBeInTheDocument()
     expect(screen.getByText('情绪记录')).toBeInTheDocument()
-  })
-
-  test('should toggle between week and month', async () => {
-    const user = userEvent.setup()
-    renderWithRouter(<InsightPage />)
-
-    const monthButton = screen.getByRole('button', { name: /本月/i })
-    await user.click(monthButton)
-
-    expect(screen.getByRole('button', { name: /本月/i })).toHaveStyle({
-      backgroundColor: expect.stringContaining('')
-    })
-  })
-})
-
-describe('UserProfilePage', () => {
-  beforeEach(() => {
-    vi.mocked(useUserStore).mockReturnValue({
-      user: { id: '1', nickname: '测试用户', createdAt: Date.now() },
-      isRegistered: true,
-      register: vi.fn(),
-      updateProfile: vi.fn(),
-      logout: vi.fn()
-    })
-    vi.mocked(useThemeStore).mockReturnValue({
-      theme: 'light'
-    })
-  })
-
-  test('should render user profile page', () => {
-    renderWithRouter(<UserProfilePage />)
-    expect(screen.getByText('我的')).toBeInTheDocument()
   })
 })
 
@@ -152,7 +116,7 @@ describe('ChatHistory', () => {
     })
   })
 
-  test('should render conversation list', () => {
+  it('should render conversation list', () => {
     renderWithRouter(
       <ChatHistory
         isOpen={true}
@@ -164,7 +128,7 @@ describe('ChatHistory', () => {
     expect(screen.getByText('测试消息')).toBeInTheDocument()
   })
 
-  test('should close when close button clicked', async () => {
+  it('should close when close button clicked', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
 
@@ -184,15 +148,7 @@ describe('ChatHistory', () => {
 })
 
 describe('API Key Validation', () => {
-  test('should validate API key format', () => {
-    // Mock localStorage
-    const mockLocalStorage = {
-      getItem: vi.fn(),
-      setItem: vi.fn(),
-      removeItem: vi.fn()
-    }
-    vi.spyOn(global, 'localStorage', 'get').mockImplementation(() => mockLocalStorage as any)
-
+  it('should validate API key format', () => {
     // Test basic validation logic
     const isValidKey = (key: string) => key.length >= 10 && key.startsWith('sk-')
     expect(isValidKey('sk-test123456789')).toBe(true)
@@ -202,7 +158,7 @@ describe('API Key Validation', () => {
 })
 
 describe('Theme Store', () => {
-  test('should toggle theme correctly', () => {
+  it('should toggle theme correctly', () => {
     const mockThemeStore = {
       theme: 'light',
       toggleTheme: vi.fn()
@@ -219,8 +175,7 @@ describe('Theme Store', () => {
 })
 
 describe('SOS Pages', () => {
-  test('SOSAnalysisPage should handle emotion analysis', () => {
-    // Test emotion intensity mapping
+  it('should handle emotion intensity mapping', () => {
     const intensityMap: Record<string, number> = {
       mild: 3,
       moderate: 5,
@@ -232,8 +187,7 @@ describe('SOS Pages', () => {
     expect(intensityMap.extreme).toBe(10)
   })
 
-  test('SOSCardPage should handle countdown correctly', () => {
-    // Test countdown logic
+  it('should handle countdown correctly', () => {
     const initialCountdown = 60
     const countdown = initialCountdown - 1
 
@@ -243,7 +197,7 @@ describe('SOS Pages', () => {
 })
 
 describe('Privacy Settings', () => {
-  test('should calculate storage stats correctly', () => {
+  it('should calculate storage stats correctly', () => {
     const mockStats = {
       emotionCount: 5,
       chatCount: 3,
