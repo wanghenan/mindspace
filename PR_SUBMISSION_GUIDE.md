@@ -29,11 +29,54 @@
    - ChatSession, ChatMessage
    - UserPreferences, StorageMetadata
 
+### 主题切换功能
+1. **CSS 变量主题系统** (`src/index.css`)
+   - 完整的 light/dark 模式 CSS 变量定义
+   - `var(--bg-primary)`, `var(--text-primary)` 等语义化变量
+
+2. **主题状态管理** (`src/store/themeStore.ts`)
+   - Zustand 持久化主题状态
+   - `theme`, `toggleTheme()`, `setTheme()`
+
+3. **主题适配组件**
+   - `src/components/Layout.tsx` - 侧边栏+主容器
+   - `src/pages/HomePage.tsx` - 首页
+   - `src/pages/UserProfilePage.tsx` - 用户页面
+   - `src/pages/ChatPage.tsx` - 对话页面
+   - `src/pages/PrivacySettingsPage.tsx` - 隐私设置页面
+
+### API Key 配置功能
+1. **用户可配置的 API Key** (`src/services/enhancedChatService.ts`)
+   - 支持环境变量或用户本地存储
+   - 优先使用环境变量，其次从 `localStorage.getItem('mindspace_dashscope_api_key')` 读取
+
+2. **对话页面配置弹窗** (`src/pages/ChatPage.tsx`)
+   - 首次访问自动弹出配置窗口
+   - 提供获取方式和安全提示
+
+3. **用户页面 API Key 管理** (`src/pages/UserProfilePage.tsx`)
+   - "AI 对话配置" 卡片
+   - 查看状态（已配置/未配置）
+   - 更新或删除 API Key
+
+### 隐私合规更新
+1. **移除绝对承诺**
+   - 移除 "100%" 字样
+   - 移除 "确保数据安全" 等绝对表述
+   - 改为保守描述
+
+2. **更新的隐私提示**
+   - "数据本地存储 | 不上传云端"
+   - "数据存储在本地"
+   - "数据存储说明 - 数据存储在当前浏览器的本地存储空间中"
+
 ### 验证结果
 - ✅ 构建成功：`npm run build`
 - ✅ 类型检查通过：`npx tsc`
 - ✅ 开发服务器运行正常
-- ✅ 1000+ 行新代码，9 个文件变更
+- ✅ 主题切换测试通过
+- ✅ API Key 配置功能测试通过
+- ✅ 隐私合规检查通过
 
 ## 📋 提交信息
 
@@ -41,19 +84,38 @@
 
 **提交信息**:
 ```
-feat: 添加数据持久化功能
+feat: 添加数据持久化、主题切换和API Key配置功能
 
-- 实现情绪历史永久存储（IndexedDB）
-- 实现对话历史 30 天自动清理机制
-- 添加用户偏好设置持久化
-- 创建隐私设置页面（导出/删除功能）
-- 添加存储统计展示
-- 集成 Zustand 状态管理
+核心功能：
+- 数据持久化（IndexedDB + Zustand）
+- 主题切换（CSS变量方案）
+- 用户可配置阿里百炼API Key
+- 隐私合规更新
 
 技术栈：
 - Zustand (状态管理)
-- idb-keyval (IndexedDB 封装)
-- UUID (唯一标识生成)
+- idb-keyval (IndexedDB封装)
+- CSS变量主题系统
+```
+
+**更新提交信息**:
+```
+feat: 完善主题切换、API Key配置和隐私合规
+
+主题功能：
+- 实现CSS变量主题系统（亮色/暗色模式）
+- 所有页面组件适配主题切换
+- 使用CSS变量替代Tailwind dark:前缀
+
+API Key配置：
+- 用户可在对话页面配置API Key
+- "我的"页面提供API Key管理功能
+- API Key存储在本地localStorage
+
+隐私合规：
+- 移除"100%"等绝对承诺
+- 更新隐私提示文案
+- 确保所有提示合规
 ```
 
 ## 🚀 推送到远程仓库
@@ -71,25 +133,56 @@ brew install gh
 gh auth login
 
 # 3. 推送分支并创建 PR
-gh pr create --title "feat: 添加数据持久化功能" \
+gh pr create --title "feat: 完善主题切换、API Key配置和隐私合规" \
   --body "## 实现了什么
-- 使用 Zustand + IndexedDB 实现数据持久化
-- 情绪历史永久存储，对话历史 30 天自动清理
-- 提供数据导出和删除功能（隐私保护）
+
+### 数据持久化功能
+- 使用 IndexedDB 实现情绪历史永久存储
+- 对话历史 30 天自动清理机制
+- 用户偏好设置持久化
+- 隐私设置页面（导出/删除功能）
+
+### 主题切换功能
+- CSS 变量主题系统（亮色/暗色模式）
+- 完整的 CSS 变量定义：--bg-primary, --text-primary 等
+- 所有页面组件适配：Layout, HomePage, ChatPage, UserProfilePage, PrivacySettingsPage
+- 移除 Tailwind dark: 前缀，改用 CSS 变量
+
+### API Key 配置功能
+- 用户可配置的阿里百炼 API Key
+- 对话页面首次访问自动弹出配置窗口
+- 我的页面提供 API Key 管理卡片（查看/更新/删除）
+- API Key 存储在 localStorage 中，隐私安全
+
+### 隐私合规更新
+- 移除所有绝对承诺（100% 等）
+- 更新隐私提示文案，确保合规
+- 提供数据存储说明
 
 ## 验证结果
-- ✅ 构建成功
-- ✅ 类型检查通过
-- ✅ 开发服务器正常运行
+- ✅ 构建成功 (npm run build)
+- ✅ 类型检查通过 (tsc)
+- ✅ 主题切换测试通过
+- ✅ API Key 配置功能测试通过
+- ✅ 隐私合规检查通过
 
 ## 关键文件变更
-- src/types/storage.ts
-- src/services/storageService.ts
-- src/store/useAppStore.ts
-- src/pages/PrivacySettingsPage.tsx
-- src/App.tsx
-- src/components/Layout.tsx
-- src/main.tsx" \
+
+- src/index.css - CSS 变量定义
+- src/store/themeStore.ts - 主题状态管理
+- src/components/Layout.tsx - 主题适配
+- src/pages/HomePage.tsx - 主题适配
+- src/pages/ChatPage.tsx - API Key 配置
+- src/pages/UserProfilePage.tsx - API Key 管理
+- src/services/enhancedChatService.ts - API Key 读取
+
+## 测试建议
+
+1. 测试主题切换（亮色/暗色）
+2. 测试 API Key 配置流程
+3. 测试我的页面 API Key 管理
+4. 验证隐私提示文案
+5. 验证数据持久化功能" \
   --base main \
   --head feature/data-persistence
 ```
@@ -122,50 +215,78 @@ git push -u origin feature/data-persistence
 
 ## 📝 PR 模板
 
-**标题**: `feat: 添加数据持久化功能`
+**标题**: `feat: 完善主题切换、API Key配置和隐私合规`
 
 **内容**:
 
 ```markdown
 ## 实现了什么
 
-### 核心功能
+### 数据持久化功能
 - ✅ 情绪历史永久存储（IndexedDB）
 - ✅ 对话历史 30 天自动清理
 - ✅ 用户偏好设置持久化
 - ✅ 隐私设置页面（导出/删除功能）
-- ✅ 存储统计展示
+
+### 主题切换功能
+- ✅ CSS 变量主题系统（亮色/暗色模式）
+- ✅ 完整的 CSS 变量定义
+- ✅ 所有页面组件适配
+- ✅ 平滑过渡动画
+
+### API Key 配置功能
+- ✅ 用户可配置的阿里百炼 API Key
+- ✅ 对话页面首次访问配置弹窗
+- ✅ 我的页面 API Key 管理卡片
+- ✅ API Key 本地存储
+
+### 隐私合规更新
+- ✅ 移除绝对承诺表述
+- ✅ 更新隐私提示文案
+- ✅ 合规性检查通过
 
 ### 技术实现
-- 使用 Zustand 管理应用状态
-- 使用 idb-keyval 封装 IndexedDB 操作
-- 使用 UUID 生成唯一记录 ID
+- Zustand 管理应用状态和主题
+- CSS 变量实现主题切换
+- idb-keyval 封装 IndexedDB
+- localStorage 存储用户 API Key
 - 完整的 TypeScript 类型定义
 
 ### 验证结果
 - ✅ 构建成功 (npm run build)
 - ✅ 类型检查通过 (tsc)
 - ✅ 开发服务器运行正常
+- ✅ 主题切换测试通过
+- ✅ API Key 配置测试通过
 - ✅ 不影响现有功能
 
 ## 关键文件变更
 
-- `src/types/storage.ts` - 数据类型定义
-- `src/services/storageService.ts` - 存储服务层
-- `src/store/useAppStore.ts` - Zustand 状态管理
-- `src/pages/PrivacySettingsPage.tsx` - 隐私设置页面
-- `src/App.tsx` - 路由配置
-- `src/components/Layout.tsx` - 侧边栏导航
-- `src/main.tsx` - 应用入口
-- `package.json` - 新增依赖
+- `src/index.css` - CSS 变量定义（light/dark）
+- `src/store/themeStore.ts` - 主题状态管理
+- `src/components/Layout.tsx` - 主题适配
+- `src/pages/HomePage.tsx` - 主题适配
+- `src/pages/ChatPage.tsx` - API Key 配置弹窗
+- `src/pages/UserProfilePage.tsx` - API Key 管理卡片
+- `src/pages/PrivacySettingsPage.tsx` - 主题适配 + 隐私提示更新
+- `src/services/enhancedChatService.ts` - API Key 读取
 
 ## 测试建议
 
-1. 打开应用，验证数据初始化正常
-2. 添加情绪记录，验证保存成功
-3. 访问隐私设置页面，验证导出功能
-4. 测试删除功能（需要二次确认）
-5. 验证对话历史是否在 30 天后自动清理
+1. **主题切换测试**
+   - 打开应用，切换亮色/暗色模式
+   - 验证所有页面颜色正确切换
+   - 验证过渡动画平滑
+
+2. **API Key 配置测试**
+   - 首次访问对话页面，弹出配置窗口
+   - 输入有效的 API Key，保存
+   - 验证对话功能正常
+   - 访问我的页面，测试更新/删除功能
+
+3. **隐私合规检查**
+   - 验证所有隐私提示文案
+   - 确认无绝对承诺表述
 
 ## 屏幕截图
 
@@ -191,6 +312,25 @@ git push -u origin feature/data-persistence
 }
 ```
 
+## 🎯 新增功能摘要
+
+### 1. 主题切换功能
+- 使用 CSS 变量替代 Tailwind dark: 前缀
+- 语义化变量命名：--bg-primary, --text-primary, --accent 等
+- 完整的 light/dark 模式定义
+- 所有页面组件平滑适配
+
+### 2. API Key 配置
+- 用户可配置自己的阿里百炼 API Key
+- 对话页面首次访问引导配置
+- 我的页面提供管理入口（查看/更新/删除）
+- 本地存储，隐私安全
+
+### 3. 隐私合规
+- 移除"100%"等绝对承诺
+- 更新隐私提示文案
+- 确保符合数据保护要求
+
 ## 🎯 下一步
 
 1. **推送代码** - 使用上述任一方式推送到远程
@@ -203,4 +343,4 @@ git push -u origin feature/data-persistence
 - **提交者**: hernon (976062158@qq.com)
 - **分支**: feature/data-persistence
 - **目标分支**: main
-- **状态**: 等待审核
+- **状态**: 已更新主题切换、API Key配置和隐私合规功能，等待审核 🔄

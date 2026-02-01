@@ -38,8 +38,12 @@ const SOSAnalysisPage = () => {
 
   const performAnalysis = async () => {
     try {
-      // 模拟分析步骤 - 更自然的时间间隔
-      const stepDelays = [1200, 1800, 1500, 2000] // 不同步骤不同的等待时间
+      // 模拟分析步骤 - 本地测试时缩短等待时间
+      // 通过 window.location.hostname 判断是否为本地开发环境
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      const stepDelays = isLocalhost 
+        ? [1000, 1000, 1000, 2000]  // 本地开发: 5 秒
+        : [1200, 1800, 1500, 2000]  // 生产环境: 7.5 秒
       
       for (let i = 0; i < analysisSteps.length; i++) {
         setAnalysisStep(i)
@@ -69,9 +73,20 @@ const SOSAnalysisPage = () => {
       console.error('AI分析失败:', err)
       setError('遇到了一点小问题，不过没关系，我还有其他方法帮你')
       
-      // 出错时使用默认方案
+      // 出错时使用默认方案，确保传递完整的 state
       setTimeout(() => {
-        navigate('/sos/card/anxiety', { state })
+        navigate('/sos/card/anxiety', { 
+          state: {
+            ...state,
+            analysisResult: {
+              emotionType: 'anxiety',
+              confidence: 0.5,
+              reasoning: '基于规则匹配的备用分析',
+              suggestions: [],
+              empathyMessage: '遇到了一点小问题，让我们用最简单的方法帮你缓解'
+            }
+          }
+        })
       }, 2000)
     }
   }

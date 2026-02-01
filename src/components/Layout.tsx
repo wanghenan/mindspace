@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useLocation } from 'react-router-dom'
 import { useThemeStore } from '../store/themeStore'
 
@@ -9,28 +9,28 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation()
   const { theme } = useThemeStore()
-
   const showSidebar = !location.pathname.startsWith('/sos')
 
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-theme')
-    }
-  }, [theme])
-
   return (
-    <div className="min-h-screen flex relative" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div 
+      className={`min-h-screen flex relative transition-colors ${theme === 'dark' ? 'dark' : ''}`}
+      style={{ backgroundColor: 'var(--bg-primary)' }}
+    >
       {showSidebar && (
-        <aside className="w-16 border-r flex-shrink-0 z-50" style={{ borderColor: 'var(--border-color)' }}>
+        <aside 
+          className={`w-16 border-r flex-shrink-0 z-50 transition-colors ${theme === 'dark' ? 'dark' : ''}`}
+          style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
+        >
           <nav className="flex flex-col items-center py-6 space-y-6">
             <a
               href="/"
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-opacity-80 relative group"
-              style={{
-                backgroundColor: location.pathname === '/' ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: location.pathname === '/' ? '#FFFFFF' : 'var(--accent)'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                location.pathname === '/' 
+                  ? 'text-white' 
+                  : 'text-purple-500 dark:text-purple-400'
+              }`}
+              style={{ 
+                backgroundColor: location.pathname === '/' ? 'var(--accent)' : 'var(--bg-secondary)'
               }}
               title="首页"
             >
@@ -41,10 +41,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <a
               href="/chat"
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group"
-              style={{
-                backgroundColor: location.pathname === '/chat' ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: location.pathname === '/chat' ? '#FFFFFF' : 'var(--accent)'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                location.pathname === '/chat' 
+                  ? 'text-white' 
+                  : 'text-purple-500 dark:text-purple-400'
+              }`}
+              style={{ 
+                backgroundColor: location.pathname === '/chat' ? 'var(--accent)' : 'var(--bg-secondary)'
               }}
               title="对话"
             >
@@ -55,10 +58,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <a
               href="/insight"
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group"
-              style={{
-                backgroundColor: location.pathname === '/insight' ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: location.pathname === '/insight' ? '#FFFFFF' : 'var(--accent)'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                location.pathname === '/insight' 
+                  ? 'text-white' 
+                  : 'text-purple-500 dark:text-purple-400'
+              }`}
+              style={{ 
+                backgroundColor: location.pathname === '/insight' ? 'var(--accent)' : 'var(--bg-secondary)'
               }}
               title="洞察"
             >
@@ -70,10 +76,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* 隐私设置 */}
             <a
               href="/privacy"
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all relative group mt-auto"
-              style={{
-                backgroundColor: location.pathname === '/privacy' ? 'var(--accent)' : 'var(--bg-secondary)',
-                color: location.pathname === '/privacy' ? '#FFFFFF' : 'var(--text-secondary)'
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                location.pathname === '/privacy' 
+                  ? 'text-white' 
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              style={{ 
+                backgroundColor: location.pathname === '/privacy' ? 'var(--accent)' : 'var(--bg-secondary)'
               }}
               title="隐私设置"
             >
@@ -81,11 +90,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </a>
+
+            {/* 我的 - 在侧边栏底部 */}
+            <div className="mt-auto pt-4" style={{ borderColor: 'var(--border-color)' }}>
+              <a
+                href="/profile"
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                  location.pathname === '/profile' 
+                    ? 'text-white' 
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+                style={{ 
+                  backgroundColor: location.pathname === '/profile' ? 'var(--accent)' : 'var(--bg-secondary)'
+                }}
+                title="我的"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </a>
+            </div>
           </nav>
         </aside>
       )}
 
-      <main className="flex-1 overflow-hidden">
+      <main className={`flex-1 overflow-hidden transition-colors ${theme === 'dark' ? 'dark' : ''}`}>
         {children}
       </main>
     </div>

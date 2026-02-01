@@ -21,7 +21,11 @@ const SOSCardPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [suggestion, setSuggestion] = useState<FirstAidSuggestion | null>(null)
-  const [countdown, setCountdown] = useState(60)
+  
+  // 倒计时初始值 - 本地开发环境 (localhost) 缩短为 10 秒，线上保持 60 秒
+  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  const initialCountdown = isLocalhost ? 10 : 60
+  const [countdown, setCountdown] = useState(initialCountdown)
   const [isComplete, setIsComplete] = useState(false)
   
   const state = location.state as LocationState
@@ -37,7 +41,7 @@ const SOSCardPage = () => {
     const content = getFirstAidByType(emotionType)
     setSuggestion(content)
 
-    // 倒计时
+    // 倒计时 - 本地开发环境 (localhost) 缩短为 10 秒，线上保持 60 秒
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -58,10 +62,10 @@ const SOSCardPage = () => {
         emotionType, 
         suggestion,
         completed: true,
-        intensity: state?.intensity,
-        bodyFeelings: state?.bodyFeelings,
-        customInput: state?.customInput,
-        analysisResult: state?.analysisResult
+        intensity: state?.intensity || null,
+        bodyFeelings: state?.bodyFeelings || [],
+        customInput: state?.customInput || '',
+        analysisResult: state?.analysisResult || null
       } 
     })
   }
