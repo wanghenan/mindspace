@@ -44,6 +44,12 @@ export const useChatStore = create<ChatStore>()(
           currentConversationId: newConversation.id
         })
         
+        console.log('[ChatStore] 创建新对话:', {
+          id: newConversation.id,
+          emotionContext,
+          totalConversations: (get().conversations || []).length
+        })
+        
         return newConversation.id
       },
       
@@ -59,7 +65,10 @@ export const useChatStore = create<ChatStore>()(
       addMessage: (message) => {
         const state = get()
         const { currentConversationId } = state
-        if (!currentConversationId) return ''
+        if (!currentConversationId) {
+          console.log('[ChatStore] 警告: 没有当前对话，无法添加消息')
+          return ''
+        }
         
         const newMessage: Message = {
           ...message,
@@ -75,13 +84,23 @@ export const useChatStore = create<ChatStore>()(
           )
         })
         
+        console.log('[ChatStore] 添加消息:', {
+          role: message.role,
+          content: message.content.substring(0, 30) + '...',
+          conversationId: currentConversationId,
+          totalMessages: (state.conversations || []).find(c => c.id === currentConversationId)?.messages.length
+        })
+        
         return newMessage.id
       },
       
       // 更新消息（用于AI流式回复）
       updateMessage: (messageId, content) => {
         const { currentConversationId } = get()
-        if (!currentConversationId) return
+        if (!currentConversationId) {
+          console.log('[ChatStore] 警告: 没有当前对话，无法更新消息')
+          return
+        }
         
         set({
           conversations: (get().conversations || []).map(conv =>
@@ -94,6 +113,12 @@ export const useChatStore = create<ChatStore>()(
                 }
               : conv
           )
+        })
+        
+        console.log('[ChatStore] 更新消息:', {
+          messageId,
+          contentLength: content.length,
+          conversationId: currentConversationId
         })
       },
       
@@ -161,10 +186,30 @@ export const useChatStore = create<ChatStore>()(
         conversations: state.conversations,
         currentConversationId: state.currentConversationId,
         isTyping: state.isTyping
-      }) as any
+      }) as any,
+      // 添加存储监听日志
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          console.log('[ChatStore] 从本地存储恢复数据:', {
+            conversationsCount: state.conversations?.length || 0,
+            currentConversationId: state.currentConversationId,
+            totalMessages: state.conversations?.reduce((acc, conv) => acc + (conv.messages?.length || 0), 0) || 0
+          })
+        }
+      }
     }
   )
 )
+
+// 监听状态变化并记录
+useChatStore.subscribe((state, prevState) => {
+  if (state.conversations !== prevState.conversations) {
+    console.log('[ChatStore] 对话列表变化:', {
+      count: state.conversations?.length || 0,
+      totalMessages: state.conversations?.reduce((acc, conv) => acc + (conv.messages?.length || 0), 0) || 0
+    })
+  }
+})
 
 // 选择器hooks，优化性能
 export const useCurrentConversation = () => 

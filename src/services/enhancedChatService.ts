@@ -5,11 +5,24 @@ import type { Message } from '../types'
 const getDashScopeApiKey = (): string => {
   // 优先使用用户本地存储的 API Key
   const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+  console.log('[AI Key] 检查本地存储:', localKey ? `已找到 (${localKey.substring(0, 8)}...)` : '未找到')
+  
   if (localKey && localKey.trim()) {
+    console.log('[AI Key] 使用来源: 用户本地存储')
     return localKey.trim()
   }
+  
   // 其次使用环境变量
-  return import.meta.env.VITE_DASHSCOPE_API_KEY || ''
+  const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+  console.log('[AI Key] 检查环境变量:', envKey ? `已找到 (${envKey.substring(0, 8)}...)` : '未找到')
+  
+  if (envKey) {
+    console.log('[AI Key] 使用来源: 环境变量')
+    return envKey
+  }
+  
+  console.log('[AI Key] 警告: 没有任何有效的 API Key!')
+  return ''
 }
 
 const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'

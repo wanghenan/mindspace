@@ -6,6 +6,7 @@ import { EmotionType } from '../data/firstAidContent'
 import { FirstAidSuggestion } from '../types'
 import { EmotionAnalysisResult } from '../services/aiService'
 import { useThemeStore } from '../store/themeStore'
+import { useAppStore } from '../store/useAppStore'
 
 interface LocationState {
   intensity: string
@@ -21,6 +22,7 @@ const SOSCardPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [suggestion, setSuggestion] = useState<FirstAidSuggestion | null>(null)
+  const addEmotionRecord = useAppStore(state => state.addEmotionRecord)
   
   // 倒计时初始值 - 本地开发环境 (localhost) 缩短为 10 秒，线上保持 60 秒
   const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
@@ -56,8 +58,37 @@ const SOSCardPage = () => {
     return () => clearInterval(timer)
   }, [emotionType, navigate])
 
-  const handleComplete = () => {
-    navigate('/sos/celebration', { 
+  const handleComplete = async () => {
+    console.log('[SOSCardPage] 行动完成，开始保存记录...')
+    console.log('[SOSCardPage] 情绪数据:', {
+      emotionType: analysisResult?.emotionType || emotionType,
+      intensity: state?.intensity || 'moderate',
+      trigger: state?.customInput,
+      context: state?.bodyFeelings?.join(', ')
+    })
+    
+    // 在这里直接保存情绪记录
+    const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
+    const intensityValue = state?.intensity === 'extreme' ? 10 : 
+                          state?.intensity === 'severe' ? 8 : 
+                          state?.intensity === 'moderate' ? 5 : 3
+    
+    try {
+      await addEmotionRecord({
+        emotion: emotionTypeStr,
+        intensity: intensityValue,
+        trigger: state?.customInput || undefined,
+        context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+        copingMethod: 'sos-first-aid',
+        effectiveness: 4  // 感觉好多了
+      })
+      console.log('[SOSCardPage] ✅ 情绪记录保存成功')
+    } catch (error) {
+      console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+    }
+    
+    // 跳转到合并后的反馈/庆祝页面
+    navigate('/sos/complete', { 
       state: { 
         emotionType, 
         suggestion,
