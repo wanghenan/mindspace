@@ -1,14 +1,15 @@
 import axios from 'axios'
 import type { Message } from '../types'
 
-// API配置 - 从环境变量或用户本地存储读取
+// API配置 - 从用户本地存储或环境变量读取
 const getDashScopeApiKey = (): string => {
-  // 优先使用环境变量
-  if (import.meta.env.VITE_DASHSCOPE_API_KEY) {
-    return import.meta.env.VITE_DASHSCOPE_API_KEY
+  // 优先使用用户本地存储的 API Key
+  const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+  if (localKey && localKey.trim()) {
+    return localKey.trim()
   }
-  // 其次从用户本地存储读取
-  return localStorage.getItem('mindspace_dashscope_api_key') || ''
+  // 其次使用环境变量
+  return import.meta.env.VITE_DASHSCOPE_API_KEY || ''
 }
 
 const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'

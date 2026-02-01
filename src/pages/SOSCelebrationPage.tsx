@@ -88,8 +88,8 @@ const SOSCelebrationPage = () => {
     })
   }
 
-  const handleProvideFeedback = () => {
-    // 跳转到反馈页面，保存情绪记录
+  const handleBackHome = () => {
+    // 跳转到反馈页面保存记录，然后返回首页
     navigate('/sos/feedback', { 
       state: { 
         emotionType: state.emotionType,
@@ -97,14 +97,10 @@ const SOSCelebrationPage = () => {
         bodyFeelings: state.bodyFeelings,
         customInput: state.customInput,
         analysisResult: state.analysisResult,
-        completed: true
+        completed: true,
+        fromCelebration: true  // 标记来自庆祝页面，直接返回首页
       } 
     })
-  }
-
-  const handleBackHome = () => {
-    // 确保清除所有状态并跳转到首页
-    navigate('/', { replace: true, state: null })
   }
 
   return (
@@ -158,24 +154,10 @@ const SOSCelebrationPage = () => {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="space-y-4 w-full max-w-sm"
           >
-            {/* 提供反馈按钮 - 用于保存情绪记录 */}
-            <motion.button
-              onClick={handleProvideFeedback}
-              className="w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              感觉好点了 😊
-            </motion.button>
-
             <motion.button
               onClick={handleContinueChat}
               className="w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2"
-              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+              style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

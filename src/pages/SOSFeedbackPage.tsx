@@ -14,6 +14,7 @@ interface LocationState {
   analysisResult?: {
     emotionType?: string
   }
+  fromCelebration?: boolean  // 来自庆祝页面，直接返回首页
 }
 
 const SOSFeedbackPage = () => {
@@ -62,8 +63,12 @@ const SOSFeedbackPage = () => {
       console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
     }
     
-    // 返回首页
-    navigate('/', { replace: true })
+    // 如果来自庆祝页面，直接返回首页
+    if (state.fromCelebration) {
+      navigate('/', { replace: true, state: null })
+    } else {
+      navigate('/', { replace: true })
+    }
   }
 
   const handleStillBad = async () => {

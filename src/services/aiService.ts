@@ -56,7 +56,14 @@ const EMOTION_ANALYSIS_PROMPT = `你是MindSpace的AI情绪分析专家，专门
 
 export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<EmotionAnalysisResult> {
   console.log('🔍 开始情绪分析:', input)
-  console.log('🌐 使用API端点:', DASHSCOPE_API_URL) // 调试当前使用的端点
+  
+  // 如果没有配置 API Key，直接使用备用分析逻辑
+  if (!DASHSCOPE_API_KEY) {
+    console.warn('⚠️ DASHSCOPE_API_KEY 未配置，使用备用分析逻辑')
+    return fallbackAnalysis(input)
+  }
+  
+  console.log('🌐 使用API端点:', DASHSCOPE_API_URL)
   
   try {
     // 构建用户输入描述
@@ -113,8 +120,15 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
 
     console.log('🌐 API响应状态:', response.status)
 
+    // 处理 401 认证错误
+    if (response.status === 401) {
+      console.warn('⚠️ API认证失败(401)，使用备用分析逻辑')
+      return fallbackAnalysis(input)
+    }
+
     if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`)
+      console.warn(`⚠️ API请求失败(${response.status})，使用备用分析逻辑`)
+      return fallbackAnalysis(input)
     }
 
     const data = await response.json()

@@ -156,21 +156,12 @@ export const useChatStore = create<ChatStore>()(
     {
       name: 'mindspace-chat-storage',
       storage: createJSONStorage(() => localStorage),
-      // 只持久化必要的数据
+      // 只持久化必要的数据状态，不包含函数
       partialize: (state) => ({
         conversations: state.conversations,
         currentConversationId: state.currentConversationId,
-        isTyping: state.isTyping,
-        createConversation: state.createConversation,
-        getCurrentConversation: state.getCurrentConversation,
-        addMessage: state.addMessage,
-        updateMessage: state.updateMessage,
-        deleteConversation: state.deleteConversation,
-        clearAllConversations: state.clearAllConversations,
-        setTyping: state.setTyping,
-        getConversationMessages: state.getConversationMessages,
-        exportConversation: state.exportConversation
-      })
+        isTyping: state.isTyping
+      }) as any
     }
   )
 )
