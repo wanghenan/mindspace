@@ -11,7 +11,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 relative" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 relative transition-colors" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <motion.button
         onClick={toggleTheme}
         className="absolute top-6 right-6 p-3 rounded-full transition-all hover:scale-105"
@@ -36,11 +36,7 @@ const HomePage = () => {
         transition={{ duration: 0.5 }}
         className="text-center mb-6"
       >
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-xl" style={{ 
-          background: theme === 'light' 
-            ? 'linear-gradient(135deg, #6B73FF 0%, #FF6B6B 100%)'
-            : 'linear-gradient(135deg, #8186FF 0%, #FF9999 100%)'
-        }}>
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-purple-400 to-pink-500">
           <span className="text-3xl text-white font-bold">M</span>
         </div>
         <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>MindSpace</h1>
@@ -55,29 +51,11 @@ const HomePage = () => {
         className="text-center max-w-sm mb-8"
       >
         <p className="text-lg leading-relaxed font-medium">
-          <span style={{
-            background: theme === 'light'
-              ? 'linear-gradient(135deg, #6B73FF 0%, #FF6B6B 100%)'
-              : 'linear-gradient(135deg, #8186FF 0%, #FF9999 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-            transition: 'none'
-          }}>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 dark:from-purple-300 dark:to-pink-300">
             当你感到情绪崩溃时
           </span>
           <br />
-          <span style={{
-            background: theme === 'light'
-              ? 'linear-gradient(135deg, #6B73FF 0%, #FF6B6B 100%)'
-              : 'linear-gradient(135deg, #8186FF 0%, #FF9999 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            color: 'transparent',
-            transition: 'none'
-          }}>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 dark:from-purple-300 dark:to-pink-300">
             我们懂你，陪伴你
           </span>
         </p>
@@ -89,11 +67,11 @@ const HomePage = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         onClick={handleSOSClick}
-        className="w-full max-w-sm flex items-center justify-center gap-3 mb-10 relative overflow-hidden font-semibold text-white rounded-2xl"
-        style={{
+        className="w-full max-w-sm flex items-center justify-center gap-3 mb-10 relative overflow-hidden font-semibold text-white rounded-2xl transition-all"
+        style={{ 
           backgroundColor: 'var(--accent)',
           boxShadow: '0 10px 30px -8px var(--accent)',
-          padding: '1rem 2.5rem',
+          padding: '1rem 2.5rem', 
           fontSize: '1.125rem'
         }}
         whileHover={{ scale: 1.02 }}

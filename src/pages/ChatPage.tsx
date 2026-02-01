@@ -9,6 +9,9 @@ import type { Conversation } from '../types'
 const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [apiKeyError, setApiKeyError] = useState('')
   const { theme, toggleTheme } = useThemeStore()
 
   const currentConversation = useChatStore((state) => state.getCurrentConversation())
@@ -23,6 +26,18 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
+  // 检查是否需要显示 API Key 配置
+  useEffect(() => {
+    const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
+    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+    if (!storedKey && !envKey) {
+      setShowApiKeyModal(true)
+    }
+    if (storedKey) {
+      setApiKey(storedKey)
+    }
+  }, [])
+
   useEffect(() => {
     if (!currentConversation) {
       createConversation()
@@ -35,18 +50,30 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!hasMessages && inputRef.current) {
       inputRef.current.focus()
-      // Move cursor to the end
       const length = inputRef.current.value.length
       inputRef.current.setSelectionRange(length, length)
     }
   }, [hasMessages])
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (hasMessages && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
     }
   }, [messages, hasMessages])
+
+  const handleSaveApiKey = () => {
+    if (!apiKey.trim()) {
+      setApiKeyError('请输入 API Key')
+      return
+    }
+    if (apiKey.length < 10) {
+      setApiKeyError('API Key 格式不正确')
+      return
+    }
+    localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
+    setShowApiKeyModal(false)
+    setApiKeyError('')
+  }
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return
@@ -102,8 +129,21 @@ const ChatPage: React.FC = () => {
         }, 3000)
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('发送消息失败:', error)
+      
+      // 如果是 API Key 未配置错误，显示配置弹窗
+      if (error.code === 'DASHSCOPE_API_KEY_MISSING' || error.message?.includes('API密钥未配置')) {
+        setShowApiKeyModal(true)
+        const errorMessage = {
+          role: 'assistant' as const,
+          content: '我需要配置一下才能和你聊天呢。请在弹出的窗口中输入你的阿里百炼 API Key。'
+        }
+        addMessage(errorMessage)
+        setTyping(false)
+        return
+      }
+      
       const errorMessage = {
         role: 'assistant' as const,
         content: '抱歉，我现在有点忙不过来。🌙\n\n不过我还是在这里陪着你，你可以继续和我说话。'
@@ -342,6 +382,88 @@ const ChatPage: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      {/* API Key 配置弹窗 */}
+      <AnimatePresence>
+        {showApiKeyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="rounded-2xl p-6 max-w-md w-full transition-colors"
+              style={{ backgroundColor: 'var(--bg-card)' }}
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl text-white font-bold">M</span>
+                </div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                  配置 API Key
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  为了使用对话功能，请配置你的阿里百炼 API Key
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    阿里百炼 API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value)
+                      setApiKeyError('')
+                    }}
+                    placeholder="sk-..."
+                    className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    style={{ 
+                      backgroundColor: 'var(--bg-input)',
+                      borderColor: apiKeyError ? '#EF4444' : 'var(--border-color)',
+                      color: 'var(--text-primary)'
+                    }}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                  />
+                  {apiKeyError && (
+                    <p className="text-sm mt-1" style={{ color: '#EF4444' }}>{apiKeyError}</p>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--accent-light)' }}>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--accent)' }}>如何获取 API Key：</strong><br/>
+                    1. 访问 <span style={{ color: 'var(--accent)' }}>https://bailian.console.aliyun.com</span><br/>
+                    2. 创建应用并获取 API Key<br/>
+                    3. 复制 Key 并粘贴到上方输入框
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
+                  <p className="text-xs" style={{ color: 'var(--accent)' }}>
+                    🔒 你的 API Key 仅存储在本地浏览器中，不会上传到任何服务器
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleSaveApiKey}
+                  className="w-full py-3 text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: 'var(--accent)' }}
+                >
+                  保存并开始对话
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

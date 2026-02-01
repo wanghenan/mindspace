@@ -1,8 +1,16 @@
 import axios from 'axios'
 import type { Message } from '../types'
 
-// API配置
-const DASHSCOPE_API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY
+// API配置 - 从环境变量或用户本地存储读取
+const getDashScopeApiKey = (): string => {
+  // 优先使用环境变量
+  if (import.meta.env.VITE_DASHSCOPE_API_KEY) {
+    return import.meta.env.VITE_DASHSCOPE_API_KEY
+  }
+  // 其次从用户本地存储读取
+  return localStorage.getItem('mindspace_dashscope_api_key') || ''
+}
+
 const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 消息类型
@@ -108,21 +116,25 @@ export async function callDashScopeAPI(
   messages: ChatMessage[],
   onStream?: (chunk: string) => void
 ): Promise<string> {
-  if (!DASHSCOPE_API_KEY) {
-    throw new Error('DashScope API密钥未配置')
+  const apiKey = getDashScopeApiKey()
+  
+  if (!apiKey) {
+    const error = new Error('DASHSCOPE_API_KEY_MISSING') as Error & { code?: string }
+    error.code = 'DASHSCOPE_API_KEY_MISSING'
+    throw error
   }
 
   console.log('🔍 准备调用阿里千问API')
   console.log('📤 API URL:', DASHSCOPE_API_URL)
-  console.log('🔑 API Key前缀:', DASHSCOPE_API_KEY.substring(0, 10) + '...')
+  console.log('🔑 API Key前缀:', apiKey.substring(0, 10) + '...')
   console.log('💬 消息数量:', messages.length)
   console.log('🌊 流式响应模式:', !!onStream)
 
   try {
     if (onStream) {
-      return await callWithStream(messages, onStream)
+      return await callWithStream(messages, onStream, apiKey)
     } else {
-      return await callWithoutStream(messages)
+      return await callWithoutStream(messages, apiKey)
     }
   } catch (error) {
     console.error('❌ API调用失败:', error)
@@ -130,7 +142,7 @@ export async function callDashScopeAPI(
   }
 }
 
-async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void): Promise<string> {
+async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void, apiKey: string): Promise<string> {
   console.log('🌊 使用流式响应模式')
 
   try {
@@ -138,7 +150,7 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'qwen-plus',
@@ -215,7 +227,7 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
   }
 }
 
-async function callWithoutStream(messages: ChatMessage[]): Promise<string> {
+async function callWithoutStream(messages: ChatMessage[], apiKey: string): Promise<string> {
   console.log('📝 使用非流式响应模式')
 
   const response = await axios({
@@ -223,7 +235,7 @@ async function callWithoutStream(messages: ChatMessage[]): Promise<string> {
     url: DASHSCOPE_API_URL,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     data: {
       model: 'qwen-plus',

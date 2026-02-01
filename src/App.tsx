@@ -13,6 +13,8 @@ import SOSAnalysisPage from './pages/SOSAnalysisPage'
 import SOSCardPage from './pages/SOSCardPage'
 import SOSFeedbackPage from './pages/SOSFeedbackPage'
 import SOSCelebrationPage from './pages/SOSCelebrationPage'
+import PrivacySettingsPage from './pages/PrivacySettingsPage'
+import UserProfilePage from './pages/UserProfilePage'
 
 function App() {
   const location = useLocation()
@@ -124,6 +126,34 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <SOSFeedbackPage />
+              </motion.div>
+            } 
+          />
+          {/* 隐私设置页面 */}
+          <Route 
+            path="/privacy" 
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <PrivacySettingsPage />
+              </motion.div>
+            } 
+          />
+          {/* 用户资料页面 */}
+          <Route 
+            path="/profile" 
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <UserProfilePage />
               </motion.div>
             } 
           />
