@@ -54,7 +54,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
           animate={{ width: '20rem', opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="h-full flex flex-col flex-shrink-0 overflow-hidden"
+          className="h-full flex flex-col flex-shrink-0 overflow-hidden absolute left-0 top-0 z-50"
           style={{ backgroundColor: 'var(--bg-primary)' }}
         >
           <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -62,9 +62,16 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>对话历史</h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full transition-all hover:opacity-80"
+                className="p-2 rounded-full transition-all hover:opacity-80 flex items-center justify-center"
+                style={{ 
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)'
+                }}
+                aria-label="关闭历史记录"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>

@@ -12,6 +12,7 @@ const ChatPage: React.FC = () => {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [apiKeyError, setApiKeyError] = useState('')
+  const [isValidating, setIsValidating] = useState(false)
   const { theme, toggleTheme } = useThemeStore()
 
   const currentConversation = useChatStore((state) => state.getCurrentConversation())
@@ -21,6 +22,7 @@ const ChatPage: React.FC = () => {
   const addMessage = useChatStore((state) => state.addMessage)
   const updateMessage = useChatStore((state) => state.updateMessage)
   const setTyping = useChatStore((state) => state.setTyping)
+  const conversations = useChatStore((state) => state.conversations)
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -44,6 +46,15 @@ const ChatPage: React.FC = () => {
     }
   }, [currentConversation, createConversation])
 
+  // 调试：打印对话历史状态
+  useEffect(() => {
+    console.log('[ChatPage] 对话历史状态:', {
+      conversationsCount: conversations.length,
+      currentConversationId: currentConversation?.id,
+      currentMessagesCount: currentConversation?.messages.length || 0
+    })
+  }, [conversations, currentConversation])
+
   const messages = currentConversation?.messages || []
   const hasMessages = messages.length > 0
 
@@ -61,7 +72,7 @@ const ChatPage: React.FC = () => {
     }
   }, [messages, hasMessages])
 
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
       setApiKeyError('请输入 API Key')
       return
@@ -70,9 +81,52 @@ const ChatPage: React.FC = () => {
       setApiKeyError('API Key 格式不正确')
       return
     }
-    localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
-    setShowApiKeyModal(false)
+
+    // 验证 API Key
+    setIsValidating(true)
     setApiKeyError('')
+
+    try {
+      const testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'qwen-plus',
+          messages: [
+            { role: 'user', content: 'Hi' }
+          ],
+          max_tokens: 5,
+          temperature: 0.1
+        })
+      })
+
+      if (response.status === 401) {
+        setApiKeyError('API Key 无效，请检查后重试')
+        setIsValidating(false)
+        return
+      }
+
+      if (!response.ok) {
+        setApiKeyError(`验证失败 (${response.status})，请稍后重试`)
+        setIsValidating(false)
+        return
+      }
+
+      // 验证成功，保存 Key
+      localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
+      setShowApiKeyModal(false)
+      setApiKeyError('')
+      setIsValidating(false)
+      alert('API Key 验证通过，已保存')
+
+    } catch (error) {
+      setApiKeyError('验证失败，请检查网络连接')
+      setIsValidating(false)
+    }
   }
 
   const handleSendMessage = async () => {
@@ -169,7 +223,19 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="flex h-full relative" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {/* 点击遮罩层 - 点击关闭历史记录 */}
+      {isHistoryOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+          onClick={() => setIsHistoryOpen(false)}
+        />
+      )}
+      
       {/* Chat History Sidebar */}
       <ChatHistory
         isOpen={isHistoryOpen}
@@ -180,15 +246,27 @@ const ChatPage: React.FC = () => {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 px-6 py-6 z-10" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            className="p-2 hover:opacity-80 rounded-full transition-all"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0" />
-            </svg>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="p-2 hover:opacity-80 rounded-full transition-all relative"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0" />
+              </svg>
+              {/* 历史记录数量徽章 */}
+              {conversations.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: 'var(--accent)', 
+                    color: 'white'
+                  }}>
+                  {conversations.length > 99 ? '99+' : conversations.length}
+                </span>
+              )}
+            </button>
+          </div>
           <button
             onClick={toggleTheme}
             className="p-2 hover:opacity-80 rounded-full transition-all"
@@ -464,11 +542,16 @@ const ChatPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={handleSaveApiKey}
-                  className="w-full py-3 text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: 'var(--accent)' }}
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="w-full py-3 rounded-xl font-medium transition-all"
+                  style={{ 
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    opacity: isValidating ? 0.5 : 1
+                  }}
+                  disabled={isValidating}
                 >
-                  保存并开始对话
+                  取消
                 </button>
               </div>
             </motion.div>

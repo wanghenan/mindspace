@@ -289,33 +289,35 @@ const SOSCardPage = () => {
               </p>
             </motion.div>
 
-            {/* 倒计时 - 更突出 */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-              className="mb-6"
-            >
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--accent)' }}>
-                  {countdown}
+            {/* 倒计时 - 仅在未完成时显示 */}
+            {!isComplete && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 1.2 }}
+                className="mb-6"
+              >
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--accent)' }}>
+                    {countdown}
+                  </div>
+                  <span className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>秒</span>
                 </div>
-                <span className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>秒</span>
-              </div>
 
-              {/* 进度条 - 更醒目 */}
-              <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <motion.div
-                  initial={{ width: '100%' }}
-                  animate={{ width: '0%' }}
-                  transition={{ duration: 60, ease: 'linear' }}
-                  className="h-full rounded-full"
-                  style={{ background: 'linear-gradient(to right, var(--accent), var(--accent))' }}
-                />
-              </div>
+                {/* 进度条 - 更醒目 */}
+                <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <motion.div
+                    initial={{ width: '100%' }}
+                    animate={{ width: '0%' }}
+                    transition={{ duration: initialCountdown, ease: 'linear' }}
+                    className="h-full rounded-full"
+                    style={{ background: 'linear-gradient(to right, var(--accent), var(--accent))' }}
+                  />
+                </div>
 
-              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>专注这一刻，你做得很好</p>
-            </motion.div>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>专注这一刻，你做得很好</p>
+              </motion.div>
+            )}
           </div>
         </motion.div>
 

@@ -30,6 +30,7 @@ export default function UserProfilePage() {
   const [apiKey, setApiKey] = useState('')
   const [apiKeyError, setApiKeyError] = useState('')
   const [apiKeyStatus, setApiKeyStatus] = useState<'loading' | 'configured' | 'not_set'>('loading')
+  const [isValidating, setIsValidating] = useState(false)
 
   // 检查 API Key 状态
   useEffect(() => {
@@ -97,7 +98,57 @@ export default function UserProfilePage() {
   }
 
   // API Key 管理函数
-  const handleSaveApiKey = () => {
+  // 验证 API Key 是否有效
+  const validateApiKey = async (key: string): Promise<boolean> => {
+    console.log('[API Key] 开始验证 Key...')
+    setIsValidating(true)
+    setApiKeyError('')
+
+    try {
+      const testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'qwen-plus',
+          messages: [
+            { role: 'user', content: 'Hi' }
+          ],
+          max_tokens: 5,
+          temperature: 0.1
+        })
+      })
+
+      console.log('[API Key] 验证响应状态:', response.status)
+
+      // 401 表示 Key 无效，200 表示成功
+      if (response.status === 401) {
+        console.warn('[API Key] 验证失败: Key 无效 (401)')
+        setApiKeyError('API Key 无效，请检查后重试')
+        return false
+      }
+
+      if (!response.ok) {
+        console.warn('[API Key] 验证失败: 服务器错误', response.status)
+        setApiKeyError(`验证失败 (${response.status})，请稍后重试`)
+        return false
+      }
+
+      console.log('[API Key] ✅ 验证成功')
+      return true
+    } catch (error) {
+      console.error('[API Key] 验证异常:', error)
+      setApiKeyError('验证失败，请检查网络连接')
+      return false
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  const handleSaveApiKey = async () => {
     if (!apiKey.trim()) {
       setApiKeyError('请输入 API Key')
       return
@@ -106,11 +157,18 @@ export default function UserProfilePage() {
       setApiKeyError('API Key 格式不正确')
       return
     }
+
+    // 验证 API Key
+    const isValid = await validateApiKey(apiKey)
+    if (!isValid) {
+      return
+    }
+
     localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
     setShowApiKeyModal(false)
     setApiKeyError('')
     setApiKeyStatus('configured')
-    alert('API Key 已保存')
+    alert('API Key 验证通过，已保存')
   }
 
   const handleDeleteApiKey = () => {
@@ -580,15 +638,27 @@ export default function UserProfilePage() {
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-secondary)'
                       }}
+                      disabled={isValidating}
                     >
                       取消
                     </button>
                     <button
                       onClick={handleSaveApiKey}
-                      className="flex-1 py-3 text-white rounded-xl font-medium transition-all"
-                      style={{ backgroundColor: 'var(--accent)' }}
+                      className="flex-1 py-3 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+                      style={{ 
+                        backgroundColor: isValidating ? 'var(--text-tertiary)' : 'var(--accent)',
+                        cursor: isValidating ? 'not-allowed' : 'pointer'
+                      }}
+                      disabled={isValidating}
                     >
-                      保存
+                      {isValidating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          验证中...
+                        </>
+                      ) : (
+                        '保存'
+                      )}
                     </button>
                   </div>
                 </div>
