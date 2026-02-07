@@ -187,25 +187,36 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       throw new Error(`DashScope API错误: ${response.status} ${errorText}`)
     }
 
-    const decoder = new TextDecoder()
-    const reader = response.body?.getReader()
-    
-    if (!reader) {
-      throw new Error('无法获取响应流')
+    // 检查是否是ReadableStream
+    if (!response.body || !response.body.getReader) {
+      console.warn('⚠️ 不支持流式响应，回退到非流式')
+      return await callWithoutStream(messages, apiKey)
     }
 
+    const decoder = new TextDecoder()
+    const reader = response.body.getReader()
+    
     let fullContent = ''
+    let chunkCount = 0
 
     try {
       while (true) {
         const { done, value } = await reader.read()
         
         if (done) {
-          console.log('🎯 流式响应完成')
+          console.log('🎯 流式响应完成，共', chunkCount, '个chunk')
           break
         }
         
+        chunkCount++
         const text = decoder.decode(value, { stream: true })
+        
+        // 调试：打印原始响应
+        if (chunkCount <= 3) {
+          console.log(`📝 Chunk ${chunkCount}:`, text.substring(0, 200))
+        }
+        
+        // 解析SSE格式
         const lines = text.split('\n').filter(line => line.trim())
         
         for (const line of lines) {
@@ -213,18 +224,19 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
             const data = line.slice(6)
             
             if (data === '[DONE]') {
+              console.log('📨 收到 [DONE] 信号')
               break
             }
             
             try {
               const parsed = JSON.parse(data)
-              if (parsed.choices && parsed.choices[0]?.delta?.content) {
-                const content = parsed.choices[0].delta.content
+              const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content
+              if (content) {
                 fullContent += content
                 onStream(content)
               }
             } catch (e) {
-              console.warn('解析流式数据失败:', e)
+              // 忽略解析错误，可能是部分SSE数据
             }
           }
         }
@@ -233,11 +245,13 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       reader.releaseLock()
     }
     
+    console.log('✅ 流式响应完成，总长度:', fullContent.length)
     return fullContent
 
   } catch (error) {
     console.error('❌ 流式调用失败:', error)
-    throw error
+    console.log('📝 回退到非流式响应...')
+    return await callWithoutStream(messages, apiKey)
   }
 }
 
