@@ -13,8 +13,9 @@ interface LocationState {
   customInput?: string
   analysisResult?: {
     emotionType?: string
+    empathyMessage?: string
   }
-  fromCelebration?: boolean  // 来自庆祝页面，直接返回首页
+  fromCelebration?: boolean
 }
 
 const SOSFeedbackPage = () => {
@@ -29,6 +30,15 @@ const SOSFeedbackPage = () => {
            state.emotionType || 
            '未知情绪'
   }
+
+  const buildChatNavigationState = (emotionType: string) => ({
+    fromSOS: true,
+    emotionType,
+    intensity: state.intensity,
+    bodyFeelings: state.bodyFeelings,
+    customInput: state.customInput,
+    empathyMessage: state.suggestion?.empathy || state.analysisResult?.empathyMessage
+  })
 
   const handleFeelBetter = async () => {
     const emotionType = getEmotionType()
@@ -78,12 +88,7 @@ const SOSFeedbackPage = () => {
     // 验证必需数据
     if (!state.intensity) {
       console.error('[SOSFeedback] ❌ 缺少 intensity 数据，跳过保存')
-      navigate('/chat', { 
-        state: { 
-          fromSOS: true,
-          emotionType: emotionType 
-        } 
-      })
+      navigate('/chat', { state: buildChatNavigationState(emotionType) })
       return
     }
     
@@ -104,13 +109,7 @@ const SOSFeedbackPage = () => {
       console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
     }
     
-    // 推荐进入AI对话
-    navigate('/chat', { 
-      state: { 
-        fromSOS: true,
-        emotionType: emotionType
-      } 
-    })
+    navigate('/chat', { state: buildChatNavigationState(emotionType) })
   }
 
   const handleWantToChat = async () => {
@@ -120,12 +119,7 @@ const SOSFeedbackPage = () => {
     // 验证必需数据
     if (!state.intensity) {
       console.error('[SOSFeedback] ❌ 缺少 intensity 数据，跳过保存')
-      navigate('/chat', { 
-        state: { 
-          fromSOS: true,
-          emotionType: emotionType 
-        } 
-      })
+      navigate('/chat', { state: buildChatNavigationState(emotionType) })
       return
     }
     
@@ -146,13 +140,7 @@ const SOSFeedbackPage = () => {
       console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
     }
     
-    // 无缝跳转到AI对话
-    navigate('/chat', { 
-      state: { 
-        fromSOS: true,
-        emotionType: emotionType
-      } 
-    })
+    navigate('/chat', { state: buildChatNavigationState(emotionType) })
   }
 
   return (

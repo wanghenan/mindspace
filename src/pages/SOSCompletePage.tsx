@@ -14,6 +14,7 @@ interface LocationState {
   customInput?: string
   analysisResult?: {
     emotionType?: string
+    empathyMessage?: string
   }
 }
 
@@ -72,10 +73,15 @@ const SOSCompletePage = () => {
   }
 
   const handleContinueChat = () => {
+    // 传递完整的 SOS 上下文到 AI 对话页面
     navigate('/chat', { 
       state: { 
         fromSOS: true,
-        emotionType: state.emotionType
+        emotionType: state.analysisResult?.emotionType || state.emotionType,
+        intensity: state.intensity,
+        bodyFeelings: state.bodyFeelings,
+        customInput: state.customInput,
+        empathyMessage: state.suggestion?.empathy || state.analysisResult?.empathyMessage
       } 
     })
   }

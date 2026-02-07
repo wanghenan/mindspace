@@ -59,24 +59,16 @@ const SOSCardPage = () => {
     return () => clearInterval(timer)
   }, [emotionType, navigate])
 
-  const handleComplete = async () => {
-    console.log('[SOSCardPage] 行动完成，开始更新情绪记录...')
-    console.log('[SOSCardPage] 情绪数据:', {
-      emotionType: analysisResult?.emotionType || emotionType,
-      intensity: state?.intensity || 'moderate',
-      trigger: state?.customInput,
-      context: state?.bodyFeelings?.join(', '),
-      emotionRecordId: state?.emotionRecordId
-    })
+  const handleContinueChat = async () => {
+    console.log('[SOSCardPage] 选择继续聊聊，开始保存情绪记录...')
     
     const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
     const intensityValue = state?.intensity === 'extreme' ? 10 : 
                           state?.intensity === 'severe' ? 8 : 
                           state?.intensity === 'moderate' ? 5 : 3
     
-    // 如果有记录ID，更新现有记录；否则创建新记录
+    // 保存情绪记录
     if (state?.emotionRecordId) {
-      console.log('[SOSCardPage] 更新现有情绪记录, ID:', state.emotionRecordId)
       try {
         await useAppStore.getState().updateEmotionRecord(state.emotionRecordId, {
           emotion: emotionTypeStr,
@@ -84,14 +76,12 @@ const SOSCardPage = () => {
           trigger: state?.customInput || undefined,
           context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
           copingMethod: 'sos-first-aid',
-          effectiveness: 4  // 感觉好多了
+          effectiveness: 4
         })
-        console.log('[SOSCardPage] ✅ 情绪记录更新成功')
       } catch (error) {
         console.error('[SOSCardPage] ❌ 更新情绪记录失败:', error)
       }
     } else {
-      console.log('[SOSCardPage] 没有记录ID，创建新记录')
       try {
         await addEmotionRecord({
           emotion: emotionTypeStr,
@@ -99,15 +89,64 @@ const SOSCardPage = () => {
           trigger: state?.customInput || undefined,
           context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
           copingMethod: 'sos-first-aid',
-          effectiveness: 4  // 感觉好多了
+          effectiveness: 4
         })
-        console.log('[SOSCardPage] ✅ 情绪记录保存成功')
       } catch (error) {
         console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
       }
     }
     
-    // 跳转到合并后的反馈/庆祝页面
+    // 跳转到对话页，带上情绪上下文
+    navigate('/chat', { 
+      state: { 
+        fromSOS: true,
+        emotionType: emotionTypeStr,
+        intensity: state?.intensity || 'moderate',
+        bodyFeelings: state?.bodyFeelings || [],
+        customInput: state?.customInput || '',
+        empathyMessage: analysisResult?.empathyMessage || suggestion?.empathy || ''
+      } 
+    })
+  }
+
+  const handleWantQuiet = async () => {
+    console.log('[SOSCardPage] 选择静静，保存记录后跳转完成页...')
+    
+    const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
+    const intensityValue = state?.intensity === 'extreme' ? 10 : 
+                          state?.intensity === 'severe' ? 8 : 
+                          state?.intensity === 'moderate' ? 5 : 3
+    
+    // 保存情绪记录
+    if (state?.emotionRecordId) {
+      try {
+        await useAppStore.getState().updateEmotionRecord(state.emotionRecordId, {
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 更新情绪记录失败:', error)
+      }
+    } else {
+      try {
+        await addEmotionRecord({
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+      }
+    }
+    
+    // 跳转到完成页
     navigate('/sos/complete', { 
       state: { 
         emotionType, 
@@ -323,17 +362,34 @@ const SOSCardPage = () => {
 
         {/* 完成按钮 */}
         {isComplete && (
-          <motion.button
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            onClick={handleComplete}
-            className="w-full text-lg py-4 rounded-xl text-white font-medium transition-all hover:opacity-90"
-            style={{ backgroundColor: 'var(--accent)' }}
-            whileTap={{ scale: 0.95 }}
+            className="space-y-3"
           >
-            行动完成，感觉好点了 ✨
-          </motion.button>
+            <motion.button
+              onClick={handleContinueChat}
+              className="w-full text-lg py-4 rounded-xl text-white font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--accent)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              💬 继续聊聊
+            </motion.button>
+            
+            <motion.button
+              onClick={handleWantQuiet}
+              className="w-full text-lg py-4 rounded-xl font-medium transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: 'var(--bg-secondary)', 
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              🌙 我想静一静
+            </motion.button>
+          </motion.div>
         )}
       </motion.div>
     </div>
