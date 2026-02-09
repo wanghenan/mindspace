@@ -36,6 +36,12 @@ cp .env.example .env
 npm run dev
 ```
 
+> **端口配置**: 默认使用 3000 端口。如端口被占用，启动会报错（已配置 `strictPort`）。
+
+### 本地测试
+- 默认访问地址: http://localhost:3000
+- 配置页面路径: `/settings`
+
 ### 构建生产版本
 ```bash
 npm run build
