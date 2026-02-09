@@ -92,43 +92,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </svg>
             </a>
 
-            {/* 隐私设置 */}
+            {/* 账户 */}
             <a
-              href="/privacy"
+              href="/account"
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                location.pathname === '/privacy' 
-                  ? 'text-white' 
+                location.pathname === '/account'
+                  ? 'text-white'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
-              style={{ 
-                backgroundColor: location.pathname === '/privacy' ? 'var(--accent)' : 'var(--bg-secondary)'
+              style={{
+                backgroundColor: location.pathname === '/account' ? 'var(--accent)' : 'var(--bg-secondary)'
               }}
-              title="隐私设置"
+              title="账户"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </a>
-
-            {/* 我的 - 在侧边栏底部 */}
-            <div className="mt-auto pt-4" style={{ borderColor: 'var(--border-color)' }}>
-              <a
-                href="/profile"
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  location.pathname === '/profile' 
-                    ? 'text-white' 
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}
-                style={{ 
-                  backgroundColor: location.pathname === '/profile' ? 'var(--accent)' : 'var(--bg-secondary)'
-                }}
-                title="我的"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </a>
-            </div>
           </nav>
         </aside>
       )}

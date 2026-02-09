@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAppStore } from '../store/useAppStore'
 
 const SOSEmotionPage = () => {
@@ -8,7 +8,9 @@ const SOSEmotionPage = () => {
   const [emotionIntensity, setEmotionIntensity] = useState<string>('')
   const [bodyFeelings, setBodyFeelings] = useState<string[]>([])
   const [customInput, setCustomInput] = useState('')
+  const [hasSelectedBodyFeeling, setHasSelectedBodyFeeling] = useState(false)
   const addEmotionRecord = useAppStore(state => state.addEmotionRecord)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // 情绪强度选项
   const intensityOptions = [
@@ -46,6 +48,11 @@ const SOSEmotionPage = () => {
         return [...prev, feelingId]
       }
     })
+    
+    // 延迟设置状态，等 UI 渲染完成后再滚动
+    setTimeout(() => {
+      setHasSelectedBodyFeeling(true)
+    }, 100)
   }
 
   const handleContinue = async () => {
@@ -92,6 +99,13 @@ const SOSEmotionPage = () => {
   }
 
   const hasRequiredInput = emotionIntensity !== ''
+
+  // 当选择完身体感受后，自动聚焦到文字输入框
+  useEffect(() => {
+    if (emotionIntensity && hasSelectedBodyFeeling && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [emotionIntensity, hasSelectedBodyFeeling])
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -220,6 +234,7 @@ const SOSEmotionPage = () => {
             </p>
             <div className="relative">
               <textarea
+                ref={textareaRef}
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
                 placeholder="比如：刚才开会被批评了，感觉很委屈..."
