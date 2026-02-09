@@ -1,0 +1,19 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - navigation [ref=e5]:
+      - link "首页" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+      - link "对话" [ref=e9] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e10]
+      - link "洞察" [ref=e12] [cursor=pointer]:
+        - /url: /insight
+        - img [ref=e13]
+      - link "隐私设置" [ref=e15] [cursor=pointer]:
+        - /url: /privacy
+        - img [ref=e16]
+      - link "我的" [ref=e19] [cursor=pointer]:
+        - /url: /profile
+        - img [ref=e20]
+  - main [ref=e22]

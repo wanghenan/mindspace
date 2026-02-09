@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAIConfigStore } from '../../store/aiConfigStore'
 import { AI_PROVIDERS, type AIProviderId } from '../../types/aiProvider'
@@ -50,12 +50,21 @@ const ProviderSelector: React.FC = () => {
   const selectedProvider = useAIConfigStore((state) => state.selectedProvider)
   const setProvider = useAIConfigStore((state) => state.setProvider)
   const isProviderConfigured = useAIConfigStore((state) => state.isProviderConfigured)
+  const prevProviderRef = useRef<AIProviderId | null>(null)
 
   const providers = Object.values(AI_PROVIDERS)
 
   const handleProviderClick = (providerId: AIProviderId) => {
     setProvider(providerId)
   }
+
+  useEffect(() => {
+    if (selectedProvider !== prevProviderRef.current) {
+      const button = document.querySelector(`[data-provider="${selectedProvider}"]`) as HTMLButtonElement
+      button?.focus()
+      prevProviderRef.current = selectedProvider
+    }
+  }, [selectedProvider])
 
   const handleKeyDown = (e: React.KeyboardEvent, providerId: AIProviderId) => {
     const providerIds = providers.map(p => p.id)
@@ -67,28 +76,20 @@ const ProviderSelector: React.FC = () => {
         e.preventDefault()
         const nextIndex = (currentIndex + 1) % providerIds.length
         setProvider(providerIds[nextIndex])
-        const nextButton = document.querySelector(`[data-provider="${providerIds[nextIndex]}"]`) as HTMLButtonElement
-        nextButton?.focus()
         break
       case 'ArrowLeft':
       case 'ArrowUp':
         e.preventDefault()
         const prevIndex = (currentIndex - 1 + providerIds.length) % providerIds.length
         setProvider(providerIds[prevIndex])
-        const prevButton = document.querySelector(`[data-provider="${providerIds[prevIndex]}"]`) as HTMLButtonElement
-        prevButton?.focus()
         break
       case 'Home':
         e.preventDefault()
         setProvider(providerIds[0])
-        const firstButton = document.querySelector(`[data-provider="${providerIds[0]}"]`) as HTMLButtonElement
-        firstButton?.focus()
         break
       case 'End':
         e.preventDefault()
         setProvider(providerIds[providerIds.length - 1])
-        const lastButton = document.querySelector(`[data-provider="${providerIds[providerIds.length - 1]}"]`) as HTMLButtonElement
-        lastButton?.focus()
         break
       case 'Enter':
       case ' ':
@@ -136,7 +137,6 @@ const ProviderSelector: React.FC = () => {
             role="radio"
             aria-checked={isSelected}
             aria-label={`${provider.name}${isConfigured ? '（已配置）' : ''}`}
-            tabIndex={isSelected ? 0 : -1}
           >
             <div className="flex flex-col items-center gap-2">
               <div

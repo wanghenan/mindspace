@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useAIConfigStore } from '../../store/aiConfigStore'
 import { MODEL_REGISTRY } from '../../config/models'
@@ -7,12 +7,21 @@ const ModelSelector: React.FC = () => {
   const selectedProvider = useAIConfigStore((state) => state.selectedProvider)
   const selectedModel = useAIConfigStore((state) => state.selectedModel)
   const setSelectedModel = useAIConfigStore((state) => state.setSelectedModel)
+  const prevModelRef = useRef<string | null>(null)
 
   const models = MODEL_REGISTRY.getByProvider(selectedProvider)
 
   const handleModelClick = (modelId: string) => {
     setSelectedModel(modelId)
   }
+
+  useEffect(() => {
+    if (selectedModel && selectedModel !== prevModelRef.current) {
+      const button = document.querySelector(`[data-model="${selectedModel}"]`) as HTMLButtonElement
+      button?.focus()
+      prevModelRef.current = selectedModel
+    }
+  }, [selectedModel])
 
   const handleKeyDown = (e: React.KeyboardEvent, modelId: string) => {
     const modelIds = models.map(m => m.id)
@@ -23,27 +32,19 @@ const ModelSelector: React.FC = () => {
         e.preventDefault()
         const nextIndex = (currentIndex + 1) % modelIds.length
         setSelectedModel(modelIds[nextIndex])
-        const nextButton = document.querySelector(`[data-model="${modelIds[nextIndex]}"]`) as HTMLButtonElement
-        nextButton?.focus()
         break
       case 'ArrowUp':
         e.preventDefault()
         const prevIndex = (currentIndex - 1 + modelIds.length) % modelIds.length
         setSelectedModel(modelIds[prevIndex])
-        const prevButton = document.querySelector(`[data-model="${modelIds[prevIndex]}"]`) as HTMLButtonElement
-        prevButton?.focus()
         break
       case 'Home':
         e.preventDefault()
         setSelectedModel(modelIds[0])
-        const firstButton = document.querySelector(`[data-model="${modelIds[0]}"]`) as HTMLButtonElement
-        firstButton?.focus()
         break
       case 'End':
         e.preventDefault()
         setSelectedModel(modelIds[modelIds.length - 1])
-        const lastButton = document.querySelector(`[data-model="${modelIds[modelIds.length - 1]}"]`) as HTMLButtonElement
-        lastButton?.focus()
         break
       case 'Enter':
       case ' ':
@@ -118,7 +119,6 @@ const ModelSelector: React.FC = () => {
             role="radio"
             aria-checked={isSelected}
             aria-label={`${model.name} - ${model.id}`}
-            tabIndex={isSelected ? 0 : -1}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">

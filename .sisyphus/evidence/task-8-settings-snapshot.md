@@ -1,0 +1,88 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - navigation [ref=e5]:
+      - link "首页" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+      - link "对话" [ref=e9] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e10]
+      - link "洞察" [ref=e12] [cursor=pointer]:
+        - /url: /insight
+        - img [ref=e13]
+      - link "隐私设置" [ref=e15] [cursor=pointer]:
+        - /url: /privacy
+        - img [ref=e16]
+      - link "我的" [ref=e19] [cursor=pointer]:
+        - /url: /profile
+        - img [ref=e20]
+  - main [ref=e22]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - heading "AI 设置" [level=1] [ref=e27]
+        - paragraph [ref=e28]: 配置您的 AI 提供商和模型偏好
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - heading "选择提供商" [level=2] [ref=e31]
+          - paragraph [ref=e32]: 选择您偏好的 AI 服务提供商
+        - generic [ref=e33]:
+          - button "OpenAI ✓" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]:
+              - img [ref=e37]
+              - paragraph [ref=e40]: OpenAI
+              - generic [ref=e42]: ✓
+          - button "Zhipu AI ✓" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]:
+              - img [ref=e46]
+              - paragraph [ref=e49]: Zhipu AI
+              - generic [ref=e51]: ✓
+          - button "Grok ✓" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]:
+              - img [ref=e55]
+              - paragraph [ref=e58]: Grok
+              - generic [ref=e60]: ✓
+          - button "Google Gemini ✓" [ref=e61] [cursor=pointer]:
+            - generic [ref=e62]:
+              - img [ref=e64]
+              - paragraph [ref=e67]: Google Gemini
+              - generic [ref=e69]: ✓
+          - button "DeepSeek ✓" [ref=e70] [cursor=pointer]:
+            - generic [ref=e71]:
+              - img [ref=e73]
+              - paragraph [ref=e76]: DeepSeek
+              - generic [ref=e78]: ✓
+          - button "MiniMax ✓" [ref=e79] [cursor=pointer]:
+            - generic [ref=e80]:
+              - img [ref=e82]
+              - paragraph [ref=e85]: MiniMax
+              - generic [ref=e87]: ✓
+          - button "Alibaba DashScope" [ref=e88] [cursor=pointer]:
+            - generic [ref=e89]:
+              - img [ref=e91]
+              - paragraph [ref=e94]: Alibaba DashScope
+          - button "Tencent Hunyuan ✓" [ref=e95] [cursor=pointer]:
+            - generic [ref=e96]:
+              - img [ref=e98]
+              - paragraph [ref=e101]: Tencent Hunyuan
+              - generic [ref=e103]: ✓
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - heading "API Key 配置" [level=3] [ref=e107]
+          - paragraph [ref=e108]: 为 Tencent Hunyuan 配置 API Key
+        - generic [ref=e109]:
+          - generic [ref=e110]:
+            - generic [ref=e111]: Tencent Hunyuan API Key
+            - textbox [ref=e112]
+          - button "验证并保存" [disabled] [ref=e114]
+          - paragraph [ref=e116]:
+            - strong [ref=e117]: 如何获取 API Key：
+            - text: 访问
+            - link "Tencent Hunyuan 控制台" [ref=e118] [cursor=pointer]:
+              - /url: "#"
+            - text: 创建应用并获取 API Key
+          - paragraph [ref=e120]: 🔒 你的 API Key 仅存储在本地浏览器中，不会上传到任何服务器
+      - generic [ref=e121]:
+        - generic [ref=e122]:
+          - heading "选择模型" [level=2] [ref=e123]
+          - paragraph [ref=e124]: 为选中的提供商选择默认模型
+        - paragraph [ref=e126]: 腾讯混元暂无可选模型，使用默认模型
