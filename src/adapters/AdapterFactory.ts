@@ -95,8 +95,6 @@ export class AdapterFactory {
         return new AlibabaAdapter();
       case 'grok':
         return new GrokAdapter();
-      case 'hunyuan':
-        throw new UnsupportedProviderError('Hunyuan provider was removed from scope due to CORS restrictions');
       case 'gemini':
         return new GeminiAdapter();
       case 'minimax':
@@ -114,8 +112,7 @@ export class AdapterFactory {
   isSupported(providerId: AIProviderId): boolean {
     return (
       OPENAI_COMPATIBLE_PROVIDERS.includes(providerId) ||
-      providerId === 'gemini' ||
-      providerId === 'hunyuan'
+      providerId === 'gemini'
     );
   }
 
@@ -131,7 +128,7 @@ export class AdapterFactory {
    * Get all supported provider IDs
    */
   getSupportedProviders(): AIProviderId[] {
-    return [...OPENAI_COMPATIBLE_PROVIDERS, 'gemini', 'hunyuan'];
+    return [...OPENAI_COMPATIBLE_PROVIDERS, 'gemini'];
   }
 }
 

@@ -2,11 +2,16 @@
  * Basic adapter architecture tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OpenAICompatibleAdapter } from '../OpenAICompatibleAdapter';
 import { AdapterFactory, UnsupportedProviderError } from '../AdapterFactory';
 import { AIProviderAdapter, ChatRequest, ChatResponse, APIError, ConfigError } from '../../types/adapter';
 import type { AIProviderId } from '../../types/aiProvider';
+
+// Mock the AI key manager
+vi.mock('../../lib/aiKeyManager', () => ({
+  getApiKey: vi.fn(),
+}));
 
 describe('Adapter Architecture', () => {
   describe('AIProviderAdapter Interface', () => {
@@ -111,6 +116,9 @@ describe('Adapter Architecture', () => {
     });
 
     it('should indicate not configured when no API key', () => {
+      const { getApiKey } = require('../../lib/aiKeyManager');
+      getApiKey.mockReturnValue({ source: 'none', key: undefined });
+
       const adapter = new OpenAICompatibleAdapter({
         provider: 'openai'
       });
@@ -146,10 +154,10 @@ describe('Adapter Architecture', () => {
       expect(() => factory.getAdapter('unknown' as AIProviderId)).toThrow(UnsupportedProviderError);
     });
 
-    it('should report hunyuan as supported provider', () => {
+    it('should report hunyuan as unsupported provider', () => {
       const factory = AdapterFactory.getInstance();
       
-      expect(factory.isSupported('hunyuan')).toBe(true);
+      expect(factory.isSupported('hunyuan' as AIProviderId)).toBe(false);
     });
 
     it('should report unknown provider as unsupported', () => {
@@ -164,8 +172,7 @@ describe('Adapter Architecture', () => {
 
       expect(providers).toContain('openai');
       expect(providers).toContain('deepseek');
-      expect(providers).toContain('hunyuan');
-      expect(providers).toHaveLength(8);
+      expect(providers).toHaveLength(7);
     });
   });
 });
