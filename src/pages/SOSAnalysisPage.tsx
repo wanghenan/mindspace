@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { analyzeEmotion } from '../services/aiService'
+import { useAppStore } from '../store/useAppStore'
 
 interface AnalysisState {
   intensity: string
   bodyFeelings: string[]
   customInput: string
   timestamp: number
+  emotionRecordId: string | null
 }
 
 const SOSAnalysisPage = () => {
@@ -16,6 +18,7 @@ const SOSAnalysisPage = () => {
   const [analysisStep, setAnalysisStep] = useState(0)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
   const [error, setError] = useState<string>('')
+  const updateEmotionRecord = useAppStore(state => state.updateEmotionRecord)
 
   const state = location.state as AnalysisState
 
@@ -38,9 +41,13 @@ const SOSAnalysisPage = () => {
 
   const performAnalysis = async () => {
     try {
-      // 模拟分析步骤 - 更自然的时间间隔
-      const stepDelays = [1200, 1800, 1500, 2000] // 不同步骤不同的等待时间
-      
+      // 模拟分析步骤 - 本地测试时缩短等待时间
+      // 通过 window.location.hostname 判断是否为本地开发环境
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      const stepDelays = isLocalhost
+        ? [1000, 1000, 1000, 2000]  // 本地开发: 5 秒
+        : [1200, 1800, 1500, 2000]  // 生产环境: 7.5 秒
+
       for (let i = 0; i < analysisSteps.length; i++) {
         setAnalysisStep(i)
         await new Promise(resolve => setTimeout(resolve, stepDelays[i]))
@@ -54,7 +61,25 @@ const SOSAnalysisPage = () => {
       })
 
       setAnalysisResult(result)
-      
+
+      // 更新情绪记录（无论AI成功还是使用备用分析）
+      if (state.emotionRecordId) {
+        console.log('[SOSAnalysisPage] 更新情绪记录:', {
+          recordId: state.emotionRecordId,
+          emotionType: result.emotionType,
+          confidence: result.confidence,
+          reasoning: result.reasoning
+        })
+
+        await updateEmotionRecord(state.emotionRecordId, {
+          emotion: result.emotionType,
+          context: result.reasoning,
+          effectiveness: undefined  // 尚未评估
+        })
+
+        console.log('[SOSAnalysisPage] ✅ 情绪记录更新成功')
+      }
+
       // 分析完成后跳转到急救卡片页面
       setTimeout(() => {
         navigate(`/sos/card/${result.emotionType}`, {
@@ -68,10 +93,40 @@ const SOSAnalysisPage = () => {
     } catch (err) {
       console.error('AI分析失败:', err)
       setError('遇到了一点小问题，不过没关系，我还有其他方法帮你')
-      
-      // 出错时使用默认方案
+
+      // 使用备用分析结果
+      const fallbackResult = {
+        emotionType: 'anxiety' as const,
+        confidence: 0.5,
+        reasoning: '基于规则匹配的备用分析',
+        suggestions: [],
+        empathyMessage: '遇到了一点小问题，让我们用最简单的方法帮你缓解'
+      }
+
+      // 即使出错也要更新情绪记录（使用备用分析）
+      if (state.emotionRecordId) {
+        console.log('[SOSAnalysisPage] AI分析失败，使用备用分析更新记录:', {
+          recordId: state.emotionRecordId,
+          emotionType: fallbackResult.emotionType
+        })
+
+        await updateEmotionRecord(state.emotionRecordId, {
+          emotion: fallbackResult.emotionType,
+          context: fallbackResult.reasoning,
+          effectiveness: undefined
+        })
+
+        console.log('[SOSAnalysisPage] ✅ 备用分析记录更新成功')
+      }
+
+      // 出错时使用默认方案，确保传递完整的 state
       setTimeout(() => {
-        navigate('/sos/card/anxiety', { state })
+        navigate('/sos/card/anxiety', {
+          state: {
+            ...state,
+            analysisResult: fallbackResult
+          }
+        })
       }, 2000)
     }
   }

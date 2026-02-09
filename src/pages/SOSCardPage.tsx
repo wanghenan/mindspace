@@ -6,6 +6,7 @@ import { EmotionType } from '../data/firstAidContent'
 import { FirstAidSuggestion } from '../types'
 import { EmotionAnalysisResult } from '../services/aiService'
 import { useThemeStore } from '../store/themeStore'
+import { useAppStore } from '../store/useAppStore'
 
 interface LocationState {
   intensity: string
@@ -13,6 +14,7 @@ interface LocationState {
   customInput: string
   timestamp: number
   analysisResult?: EmotionAnalysisResult
+  emotionRecordId?: string  // 情绪记录ID，用于更新而不是创建新记录
 }
 
 const SOSCardPage = () => {
@@ -21,7 +23,12 @@ const SOSCardPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [suggestion, setSuggestion] = useState<FirstAidSuggestion | null>(null)
-  const [countdown, setCountdown] = useState(60)
+  const addEmotionRecord = useAppStore(state => state.addEmotionRecord)
+  
+  // 倒计时初始值 - 本地开发环境 (localhost) 缩短为 10 秒，线上保持 60 秒
+  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  const initialCountdown = isLocalhost ? 10 : 60
+  const [countdown, setCountdown] = useState(initialCountdown)
   const [isComplete, setIsComplete] = useState(false)
   
   const state = location.state as LocationState
@@ -37,7 +44,7 @@ const SOSCardPage = () => {
     const content = getFirstAidByType(emotionType)
     setSuggestion(content)
 
-    // 倒计时
+    // 倒计时 - 本地开发环境 (localhost) 缩短为 10 秒，线上保持 60 秒
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -52,16 +59,103 @@ const SOSCardPage = () => {
     return () => clearInterval(timer)
   }, [emotionType, navigate])
 
-  const handleComplete = () => {
-    navigate('/sos/celebration', { 
+  const handleContinueChat = async () => {
+    console.log('[SOSCardPage] 选择继续聊聊，开始保存情绪记录...')
+    
+    const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
+    const intensityValue = state?.intensity === 'extreme' ? 10 : 
+                          state?.intensity === 'severe' ? 8 : 
+                          state?.intensity === 'moderate' ? 5 : 3
+    
+    // 保存情绪记录
+    if (state?.emotionRecordId) {
+      try {
+        await useAppStore.getState().updateEmotionRecord(state.emotionRecordId, {
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 更新情绪记录失败:', error)
+      }
+    } else {
+      try {
+        await addEmotionRecord({
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+      }
+    }
+    
+    // 跳转到对话页，带上情绪上下文
+    navigate('/chat', { 
+      state: { 
+        fromSOS: true,
+        emotionType: emotionTypeStr,
+        intensity: state?.intensity || 'moderate',
+        bodyFeelings: state?.bodyFeelings || [],
+        customInput: state?.customInput || '',
+        empathyMessage: analysisResult?.empathyMessage || suggestion?.empathy || ''
+      } 
+    })
+  }
+
+  const handleWantQuiet = async () => {
+    console.log('[SOSCardPage] 选择静静，保存记录后跳转完成页...')
+    
+    const emotionTypeStr = analysisResult?.emotionType || emotionType || '未知情绪'
+    const intensityValue = state?.intensity === 'extreme' ? 10 : 
+                          state?.intensity === 'severe' ? 8 : 
+                          state?.intensity === 'moderate' ? 5 : 3
+    
+    // 保存情绪记录
+    if (state?.emotionRecordId) {
+      try {
+        await useAppStore.getState().updateEmotionRecord(state.emotionRecordId, {
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 更新情绪记录失败:', error)
+      }
+    } else {
+      try {
+        await addEmotionRecord({
+          emotion: emotionTypeStr,
+          intensity: intensityValue,
+          trigger: state?.customInput || undefined,
+          context: state?.bodyFeelings?.length ? state?.bodyFeelings.join(', ') : undefined,
+          copingMethod: 'sos-first-aid',
+          effectiveness: 4
+        })
+      } catch (error) {
+        console.error('[SOSCardPage] ❌ 保存情绪记录失败:', error)
+      }
+    }
+    
+    // 跳转到完成页
+    navigate('/sos/complete', { 
       state: { 
         emotionType, 
         suggestion,
         completed: true,
-        intensity: state?.intensity,
-        bodyFeelings: state?.bodyFeelings,
-        customInput: state?.customInput,
-        analysisResult: state?.analysisResult
+        intensity: state?.intensity || null,
+        bodyFeelings: state?.bodyFeelings || [],
+        customInput: state?.customInput || '',
+        analysisResult: state?.analysisResult || null
       } 
     })
   }
@@ -234,49 +328,68 @@ const SOSCardPage = () => {
               </p>
             </motion.div>
 
-            {/* 倒计时 - 更突出 */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-              className="mb-6"
-            >
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--accent)' }}>
-                  {countdown}
+            {/* 倒计时 - 仅在未完成时显示 */}
+            {!isComplete && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 1.2 }}
+                className="mb-6"
+              >
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="text-3xl sm:text-4xl font-bold" style={{ color: 'var(--accent)' }}>
+                    {countdown}
+                  </div>
+                  <span className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>秒</span>
                 </div>
-                <span className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)' }}>秒</span>
-              </div>
 
-              {/* 进度条 - 更醒目 */}
-              <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <motion.div
-                  initial={{ width: '100%' }}
-                  animate={{ width: '0%' }}
-                  transition={{ duration: 60, ease: 'linear' }}
-                  className="h-full rounded-full"
-                  style={{ background: 'linear-gradient(to right, var(--accent), var(--accent))' }}
-                />
-              </div>
+                {/* 进度条 - 更醒目 */}
+                <div className="w-full rounded-full h-3 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <motion.div
+                    initial={{ width: '100%' }}
+                    animate={{ width: '0%' }}
+                    transition={{ duration: initialCountdown, ease: 'linear' }}
+                    className="h-full rounded-full"
+                    style={{ background: 'linear-gradient(to right, var(--accent), var(--accent))' }}
+                  />
+                </div>
 
-              <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>专注这一刻，你做得很好</p>
-            </motion.div>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>专注这一刻，你做得很好</p>
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
         {/* 完成按钮 */}
         {isComplete && (
-          <motion.button
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            onClick={handleComplete}
-            className="w-full text-lg py-4 rounded-xl text-white font-medium transition-all hover:opacity-90"
-            style={{ backgroundColor: 'var(--accent)' }}
-            whileTap={{ scale: 0.95 }}
+            className="space-y-3"
           >
-            行动完成，感觉好点了 ✨
-          </motion.button>
+            <motion.button
+              onClick={handleContinueChat}
+              className="w-full text-lg py-4 rounded-xl text-white font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--accent)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              💬 继续聊聊
+            </motion.button>
+            
+            <motion.button
+              onClick={handleWantQuiet}
+              className="w-full text-lg py-4 rounded-xl font-medium transition-all hover:opacity-80"
+              style={{ 
+                backgroundColor: 'var(--bg-secondary)', 
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              🌙 我想静一静
+            </motion.button>
+          </motion.div>
         )}
       </motion.div>
     </div>

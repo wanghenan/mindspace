@@ -13,14 +13,30 @@ interface EmotionAnalysisResult {
   empathyMessage: string
 }
 
-// 阿里千问API配置
-const DASHSCOPE_API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY
-const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-
-// 检查API密钥是否配置
-if (!DASHSCOPE_API_KEY) {
-  console.warn('⚠️ DASHSCOPE_API_KEY 未配置，将使用备用分析逻辑')
+// 获取AI Key的函数 - 优先本地存储，其次环境变量
+const getAIKey = (): { key: string; source: 'localStorage' | 'env' | 'none' } => {
+  // 优先检查用户本地存储
+  const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+  if (localKey && localKey.trim()) {
+    console.log('[AI Service] AI Key 来源: 用户本地存储 (localStorage)')
+    console.log('[AI Service] Key 前缀:', localKey.substring(0, 8) + '...')
+    return { key: localKey.trim(), source: 'localStorage' }
+  }
+  
+  // 其次检查环境变量
+  const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+  if (envKey) {
+    console.log('[AI Service] AI Key 来源: 环境变量 (VITE_DASHSCOPE_API_KEY)')
+    console.log('[AI Service] Key 前缀:', envKey.substring(0, 8) + '...')
+    return { key: envKey, source: 'env' }
+  }
+  
+  // 没有配置任何Key
+  console.log('[AI Service] AI Key 来源: 无 (未配置)')
+  return { key: '', source: 'none' }
 }
+
+const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 情绪分析系统提示词
 const EMOTION_ANALYSIS_PROMPT = `你是MindSpace的AI情绪分析专家，专门帮助高压职业女性进行情绪急救。
@@ -56,7 +72,18 @@ const EMOTION_ANALYSIS_PROMPT = `你是MindSpace的AI情绪分析专家，专门
 
 export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<EmotionAnalysisResult> {
   console.log('🔍 开始情绪分析:', input)
-  console.log('🌐 使用API端点:', DASHSCOPE_API_URL) // 调试当前使用的端点
+  
+  // 获取AI Key及其来源
+  const { key: apiKey, source } = getAIKey()
+  
+  // 如果没有配置 API Key，使用备用分析逻辑
+  if (!apiKey) {
+    console.warn('⚠️ [AI Service] 没有可用的AI Key，使用备用分析逻辑（规则匹配）')
+    return fallbackAnalysis(input)
+  }
+  
+  console.log('🌐 使用API端点:', DASHSCOPE_API_URL)
+  console.log('🔑 AI Key 来源:', source === 'localStorage' ? '用户本地存储' : '环境变量')
   
   try {
     // 构建用户输入描述
@@ -91,7 +118,7 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'qwen-plus',
@@ -113,8 +140,15 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
 
     console.log('🌐 API响应状态:', response.status)
 
+    // 处理 401 认证错误
+    if (response.status === 401) {
+      console.warn('⚠️ [AI Service] API认证失败(401)，可能Key无效，使用备用分析逻辑（规则匹配）')
+      return fallbackAnalysis(input)
+    }
+
     if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`)
+      console.warn(`⚠️ [AI Service] API请求失败(${response.status})，使用备用分析逻辑（规则匹配）`)
+      return fallbackAnalysis(input)
     }
 
     const data = await response.json()
@@ -127,6 +161,7 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
     // 解析AI返回的JSON结果（OpenAI格式）
     const aiResponse = data.choices[0].message.content
     console.log('🤖 AI回复内容:', aiResponse)
+    console.log('✅ [AI Service] 使用阿里千问API成功完成情绪分析，来源:', source === 'localStorage' ? '用户本地存储' : '环境变量')
     
     let analysisResult: EmotionAnalysisResult
 
@@ -150,13 +185,16 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
 
   } catch (error) {
     console.error('❌ AI分析失败:', error)
+    console.log('💡 [AI Service] 切换到备用分析逻辑（规则匹配）')
     // 返回备用分析结果
     return fallbackAnalysis(input)
   }
 }
 
-// 备用分析逻辑（当AI服务不可用时）
+// 备用分析逻辑（当AI服务不可用时）- 基于规则的简单匹配
 function fallbackAnalysis(input: EmotionAnalysisInput): EmotionAnalysisResult {
+  console.log('📋 [AI Service] 使用备用分析逻辑：基于规则的简单匹配')
+  
   let emotionType: EmotionAnalysisResult['emotionType'] = 'anxiety'
   let empathyMessage = '我理解你现在的感受，让我们一起来缓解这种不适'
 
@@ -178,10 +216,12 @@ function fallbackAnalysis(input: EmotionAnalysisInput): EmotionAnalysisResult {
     empathyMessage = '感觉被压垮了对吧，我们一步步来缓解'
   }
 
+  console.log('📋 [AI Service] 备用分析结果:', { emotionType, empathyMessage, rule: 'bodyFeelingMatch' })
+  
   return {
     emotionType,
     confidence: 0.6,
-    reasoning: '基于身体感受和情绪强度的规则匹配分析',
+    reasoning: '基于身体感受和情绪强度的规则匹配分析（备用逻辑）',
     suggestions: [],
     empathyMessage
   }

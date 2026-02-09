@@ -1,8 +1,30 @@
 import axios from 'axios'
 import type { Message } from '../types'
 
-// API配置
-const DASHSCOPE_API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY
+// API配置 - 从用户本地存储或环境变量读取
+const getDashScopeApiKey = (): string => {
+  // 优先使用用户本地存储的 API Key
+  const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+  console.log('[AI Key] 检查本地存储:', localKey ? `已找到 (${localKey.substring(0, 8)}...)` : '未找到')
+  
+  if (localKey && localKey.trim()) {
+    console.log('[AI Key] 使用来源: 用户本地存储')
+    return localKey.trim()
+  }
+  
+  // 其次使用环境变量
+  const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+  console.log('[AI Key] 检查环境变量:', envKey ? `已找到 (${envKey.substring(0, 8)}...)` : '未找到')
+  
+  if (envKey) {
+    console.log('[AI Key] 使用来源: 环境变量')
+    return envKey
+  }
+  
+  console.log('[AI Key] 警告: 没有任何有效的 API Key!')
+  return ''
+}
+
 const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 
 // 消息类型
@@ -108,21 +130,25 @@ export async function callDashScopeAPI(
   messages: ChatMessage[],
   onStream?: (chunk: string) => void
 ): Promise<string> {
-  if (!DASHSCOPE_API_KEY) {
-    throw new Error('DashScope API密钥未配置')
+  const apiKey = getDashScopeApiKey()
+  
+  if (!apiKey) {
+    const error = new Error('DASHSCOPE_API_KEY_MISSING') as Error & { code?: string }
+    error.code = 'DASHSCOPE_API_KEY_MISSING'
+    throw error
   }
 
   console.log('🔍 准备调用阿里千问API')
   console.log('📤 API URL:', DASHSCOPE_API_URL)
-  console.log('🔑 API Key前缀:', DASHSCOPE_API_KEY.substring(0, 10) + '...')
+  console.log('🔑 API Key前缀:', apiKey.substring(0, 10) + '...')
   console.log('💬 消息数量:', messages.length)
   console.log('🌊 流式响应模式:', !!onStream)
 
   try {
     if (onStream) {
-      return await callWithStream(messages, onStream)
+      return await callWithStream(messages, onStream, apiKey)
     } else {
-      return await callWithoutStream(messages)
+      return await callWithoutStream(messages, apiKey)
     }
   } catch (error) {
     console.error('❌ API调用失败:', error)
@@ -130,7 +156,7 @@ export async function callDashScopeAPI(
   }
 }
 
-async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void): Promise<string> {
+async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void, apiKey: string): Promise<string> {
   console.log('🌊 使用流式响应模式')
 
   try {
@@ -138,7 +164,7 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'qwen-plus',
@@ -161,25 +187,36 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       throw new Error(`DashScope API错误: ${response.status} ${errorText}`)
     }
 
-    const decoder = new TextDecoder()
-    const reader = response.body?.getReader()
-    
-    if (!reader) {
-      throw new Error('无法获取响应流')
+    // 检查是否是ReadableStream
+    if (!response.body || !response.body.getReader) {
+      console.warn('⚠️ 不支持流式响应，回退到非流式')
+      return await callWithoutStream(messages, apiKey)
     }
 
+    const decoder = new TextDecoder()
+    const reader = response.body.getReader()
+    
     let fullContent = ''
+    let chunkCount = 0
 
     try {
       while (true) {
         const { done, value } = await reader.read()
         
         if (done) {
-          console.log('🎯 流式响应完成')
+          console.log('🎯 流式响应完成，共', chunkCount, '个chunk')
           break
         }
         
+        chunkCount++
         const text = decoder.decode(value, { stream: true })
+        
+        // 调试：打印原始响应
+        if (chunkCount <= 3) {
+          console.log(`📝 Chunk ${chunkCount}:`, text.substring(0, 200))
+        }
+        
+        // 解析SSE格式
         const lines = text.split('\n').filter(line => line.trim())
         
         for (const line of lines) {
@@ -187,18 +224,19 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
             const data = line.slice(6)
             
             if (data === '[DONE]') {
+              console.log('📨 收到 [DONE] 信号')
               break
             }
             
             try {
               const parsed = JSON.parse(data)
-              if (parsed.choices && parsed.choices[0]?.delta?.content) {
-                const content = parsed.choices[0].delta.content
+              const content = parsed.choices?.[0]?.delta?.content || parsed.choices?.[0]?.message?.content
+              if (content) {
                 fullContent += content
                 onStream(content)
               }
             } catch (e) {
-              console.warn('解析流式数据失败:', e)
+              // 忽略解析错误，可能是部分SSE数据
             }
           }
         }
@@ -207,15 +245,17 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       reader.releaseLock()
     }
     
+    console.log('✅ 流式响应完成，总长度:', fullContent.length)
     return fullContent
 
   } catch (error) {
     console.error('❌ 流式调用失败:', error)
-    throw error
+    console.log('📝 回退到非流式响应...')
+    return await callWithoutStream(messages, apiKey)
   }
 }
 
-async function callWithoutStream(messages: ChatMessage[]): Promise<string> {
+async function callWithoutStream(messages: ChatMessage[], apiKey: string): Promise<string> {
   console.log('📝 使用非流式响应模式')
 
   const response = await axios({
@@ -223,7 +263,7 @@ async function callWithoutStream(messages: ChatMessage[]): Promise<string> {
     url: DASHSCOPE_API_URL,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
     data: {
       model: 'qwen-plus',

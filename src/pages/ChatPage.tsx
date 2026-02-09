@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { sendChatMessage } from '../services/enhancedChatService'
 import { useChatStore } from '../store/chatStore'
 import { ChatHistory } from '../components/ChatHistory'
@@ -9,7 +10,24 @@ import type { Conversation } from '../types'
 const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [apiKeyError, setApiKeyError] = useState('')
+  const [isValidating, setIsValidating] = useState(false)
   const { theme, toggleTheme } = useThemeStore()
+  const location = useLocation()
+  
+  // SOS 上下文类型
+  interface SOSContext {
+    fromSOS?: boolean
+    emotionType?: string
+    intensity?: string
+    bodyFeelings?: string[]
+    customInput?: string
+    empathyMessage?: string
+  }
+  
+  const sosContext = location.state as SOSContext
 
   const currentConversation = useChatStore((state) => state.getCurrentConversation())
   const isTyping = useChatStore((state) => state.isTyping)
@@ -18,16 +36,75 @@ const ChatPage: React.FC = () => {
   const addMessage = useChatStore((state) => state.addMessage)
   const updateMessage = useChatStore((state) => state.updateMessage)
   const setTyping = useChatStore((state) => state.setTyping)
+  const conversations = useChatStore((state) => state.conversations)
 
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const hasInitializedSOS = useRef(false)
+
+  // 检查是否需要显示 API Key 配置
+  useEffect(() => {
+    const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
+    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+    if (!storedKey && !envKey) {
+      setShowApiKeyModal(true)
+    }
+    if (storedKey) {
+      setApiKey(storedKey)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!currentConversation) {
+    // 如果来自 SOS 且未初始化过，强制创建新对话
+    if (sosContext?.fromSOS && sosContext?.emotionType && !hasInitializedSOS.current) {
+      hasInitializedSOS.current = true
+      
+      // 构建情绪上下文
+      let emotionContext = ''
+      const bodyFeelings = sosContext.bodyFeelings?.join('、') || ''
+      const intensityText = {
+        mild: '轻微',
+        moderate: '中等',
+        severe: '严重',
+        extreme: '极度'
+      }[sosContext.intensity || 'moderate'] || ''
+      
+      emotionContext = `${intensityText}${sosContext.emotionType}情绪`
+      if (bodyFeelings) {
+        emotionContext += `，伴随${bodyFeelings}`
+      }
+      if (sosContext.customInput) {
+        emotionContext += `，情况：${sosContext.customInput}`
+      }
+      
+      // 创建新对话
+      createConversation(emotionContext)
+      console.log('[ChatPage] SOS 跳转，创建新对话，携带情绪上下文:', emotionContext)
+      
+      // 添加 AI 欢迎消息
+      if (sosContext.empathyMessage) {
+        const welcomeMessage = {
+          role: 'assistant' as const,
+          content: sosContext.empathyMessage
+        }
+        addMessage(welcomeMessage)
+        console.log('[ChatPage] 添加 SOS 欢迎消息:', sosContext.empathyMessage)
+      }
+    } else if (!currentConversation && !sosContext?.fromSOS) {
+      // 普通情况：没有对话且不是 SOS 时才创建
       createConversation()
     }
-  }, [currentConversation, createConversation])
+  }, [sosContext, createConversation, addMessage, currentConversation, sosContext])
+
+  // 调试：打印对话历史状态
+  useEffect(() => {
+    console.log('[ChatPage] 对话历史状态:', {
+      conversationsCount: conversations.length,
+      currentConversationId: currentConversation?.id,
+      currentMessagesCount: currentConversation?.messages.length || 0
+    })
+  }, [conversations, currentConversation])
 
   const messages = currentConversation?.messages || []
   const hasMessages = messages.length > 0
@@ -35,21 +112,86 @@ const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!hasMessages && inputRef.current) {
       inputRef.current.focus()
-      // Move cursor to the end
       const length = inputRef.current.value.length
       inputRef.current.setSelectionRange(length, length)
     }
   }, [hasMessages])
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (hasMessages && messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
     }
   }, [messages, hasMessages])
 
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) {
+      setApiKeyError('请输入 API Key')
+      return
+    }
+    if (apiKey.length < 10) {
+      setApiKeyError('API Key 格式不正确')
+      return
+    }
+
+    // 验证 API Key
+    setIsValidating(true)
+    setApiKeyError('')
+
+    try {
+      const testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+      const response = await fetch(testUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.trim()}`
+        },
+        body: JSON.stringify({
+          model: 'qwen-plus',
+          messages: [
+            { role: 'user', content: 'Hi' }
+          ],
+          max_tokens: 5,
+          temperature: 0.1
+        })
+      })
+
+      if (response.status === 401) {
+        setApiKeyError('API Key 无效，请检查后重试')
+        setIsValidating(false)
+        return
+      }
+
+      if (!response.ok) {
+        setApiKeyError(`验证失败 (${response.status})，请稍后重试`)
+        setIsValidating(false)
+        return
+      }
+
+      // 验证成功，保存 Key
+      localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
+      setShowApiKeyModal(false)
+      setApiKeyError('')
+      setIsValidating(false)
+      alert('API Key 验证通过，已保存')
+
+    } catch (error) {
+      setApiKeyError('验证失败，请检查网络连接')
+      setIsValidating(false)
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return
+
+    // 发送前检查 API Key
+    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+    const localKey = localStorage.getItem('mindspace_dashscope_api_key')
+    
+    if (!envKey && !localKey) {
+      console.log('[ChatPage] 没有配置 API Key，显示配置弹窗')
+      setShowApiKeyModal(true)
+      return
+    }
 
     const userMessage = {
       role: 'user' as const,
@@ -71,15 +213,19 @@ const ChatPage: React.FC = () => {
 
       const aiMessageId = addMessage(aiMessage)
 
+      let streamedContent = ''
       const response = await sendChatMessage(
         historyMessages,
         userContent,
         (chunk) => {
-          updateMessage(aiMessageId, chunk)
+          streamedContent += chunk
+          updateMessage(aiMessageId, streamedContent)
         }
       )
 
-      updateMessage(aiMessageId, response.content)
+      if (response.content && response.content !== streamedContent) {
+        updateMessage(aiMessageId, response.content)
+      }
       setTyping(false)
 
       if (response.needsSOS) {
@@ -102,8 +248,9 @@ const ChatPage: React.FC = () => {
         }, 3000)
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('发送消息失败:', error)
+      
       const errorMessage = {
         role: 'assistant' as const,
         content: '抱歉，我现在有点忙不过来。🌙\n\n不过我还是在这里陪着你，你可以继续和我说话。'
@@ -131,7 +278,19 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full" style={{ backgroundColor: 'var(--bg-primary)' }}>
+    <div className="flex h-full relative" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      {/* 点击遮罩层 - 点击关闭历史记录 */}
+      {isHistoryOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 z-40"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+          onClick={() => setIsHistoryOpen(false)}
+        />
+      )}
+      
       {/* Chat History Sidebar */}
       <ChatHistory
         isOpen={isHistoryOpen}
@@ -142,15 +301,27 @@ const ChatPage: React.FC = () => {
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 px-6 py-6 z-10" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            className="p-2 hover:opacity-80 rounded-full transition-all"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0" />
-            </svg>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsHistoryOpen(true)}
+              className="p-2 hover:opacity-80 rounded-full transition-all relative"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0" />
+              </svg>
+              {/* 历史记录数量徽章 */}
+              {conversations.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: 'var(--accent)', 
+                    color: 'white'
+                  }}>
+                  {conversations.length > 99 ? '99+' : conversations.length}
+                </span>
+              )}
+            </button>
+          </div>
           <button
             onClick={toggleTheme}
             className="p-2 hover:opacity-80 rounded-full transition-all"
@@ -206,68 +377,84 @@ const ChatPage: React.FC = () => {
                       target.style.height = Math.min(Math.max(target.scrollHeight, 56), 160) + 'px'
                     }}
                   />
-                  <AnimatePresence>
-                    {inputValue.trim() && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="flex justify-start mt-4"
-                      >
-                        <motion.button
-                          onClick={handleSendMessage}
-                          disabled={isTyping}
-                          className="px-6 py-2 font-medium transition-all rounded-2xl"
-                          style={{
-                            border: '1px solid var(--border-color)',
-                            color: 'var(--text-primary)',
-                            backgroundColor: 'transparent'
-                          }}
-                          whileHover={{ scale: 1.02, backgroundColor: 'var(--bg-secondary)' }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          {isTyping ? (
-                            <div className="flex items-center gap-1">
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75 }}></div>
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75, animationDelay: '0.1s' }}></div>
-                              <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75, animationDelay: '0.2s' }}></div>
-                            </div>
-                          ) : (
-                            '发送'
-                          )}
-                        </motion.button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                   <AnimatePresence>
+                     {inputValue.trim() && (
+                       <motion.div
+                         initial={{ opacity: 0, y: -10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         exit={{ opacity: 0, y: -10 }}
+                         className="flex justify-start mt-4"
+                       >
+                         <motion.button
+                           onClick={handleSendMessage}
+                           disabled={isTyping}
+                           className="px-6 py-2 font-medium transition-all rounded-2xl"
+                           style={{
+                             backgroundColor: 'var(--accent)',
+                             color: 'white'
+                           }}
+                           whileHover={{ scale: 1.02, opacity: 0.9 }}
+                           whileTap={{ scale: 0.98 }}
+                         >
+                           {isTyping ? (
+                             <div className="flex items-center gap-1">
+                               <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75 }}></div>
+                               <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75, animationDelay: '0.1s' }}></div>
+                               <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75, animationDelay: '0.2s' }}></div>
+                             </div>
+                           ) : (
+                             '发送'
+                           )}
+                         </motion.button>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
                 </div>
               </div>
             ) : (
               // Messages List
               <div className="space-y-3">
-                <AnimatePresence>
-                  {messages.map((message) => (
-                    <motion.div
+                {messages.map((message, index) => {
+                  // 最后一条消息且是 AI 正在流式输出
+                  const isStreaming = index === messages.length - 1 && 
+                                     message.role === 'assistant' && 
+                                     isTyping && 
+                                     message.content.length > 0
+                  
+                  return (
+                    <div
                       key={message.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
                       className="flex justify-start"
+                      style={{ 
+                        // 流式消息禁用所有动画
+                        animation: isStreaming ? 'none' : undefined,
+                        opacity: 1
+                      }}
                     >
                       {message.role === 'assistant' ? (
                         <div className="flex items-start gap-3 max-w-[80%]">
                           <div className="w-1 h-full rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
                           <div style={{ color: 'var(--accent)' }}>
-                            <div className="whitespace-pre-wrap">{message.content}</div>
+                            {/* 流式消息直接显示文本，无动画 */}
+                            <div className="whitespace-pre-wrap">
+                              {message.content}
+                            </div>
                           </div>
                         </div>
                       ) : (
                         <div style={{ color: 'var(--text-primary)' }}>
-                          <div className="whitespace-pre-wrap">{message.content}</div>
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <div className="whitespace-pre-wrap">{message.content}</div>
+                          </motion.div>
                         </div>
                       )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                    </div>
+                  )
+                })}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -300,41 +487,42 @@ const ChatPage: React.FC = () => {
                   }}
                 />
                 <div className="flex items-center gap-3 mt-3">
+                  {/* 发送按钮 - 突出显示 */}
                   <motion.button
                     onClick={handleSendMessage}
                     disabled={isTyping || !inputValue.trim()}
                     className="px-6 py-2 font-medium transition-all rounded-2xl"
                     style={{
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      backgroundColor: 'transparent',
+                      backgroundColor: 'var(--accent)',
+                      color: 'white',
                       opacity: inputValue.trim() ? 1 : 0.5
                     }}
-                    whileHover={inputValue.trim() ? { scale: 1.02, backgroundColor: 'var(--bg-secondary)' } : {}}
+                    whileHover={inputValue.trim() ? { scale: 1.02, opacity: 0.9 } : {}}
                     whileTap={inputValue.trim() ? { scale: 0.98 } : {}}
                   >
                     {isTyping ? (
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75 }}></div>
-                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75, animationDelay: '0.1s' }}></div>
-                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-tertiary)', opacity: 0.75, animationDelay: '0.2s' }}></div>
+                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75 }}></div>
+                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75, animationDelay: '0.1s' }}></div>
+                        <div className="w-3 h-3 rounded-full animate-bounce" style={{ backgroundColor: 'white', opacity: 0.75, animationDelay: '0.2s' }}></div>
                       </div>
                     ) : (
                       '发送'
                     )}
                   </motion.button>
+                  
+                  {/* 结束按钮 - 弱化显示 */}
                   <motion.button
                     onClick={handleEndConversation}
-                    className="px-6 py-2 font-medium transition-all rounded-2xl"
+                    className="px-4 py-2 font-medium transition-all rounded-2xl text-sm"
                     style={{
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
+                      color: 'var(--text-tertiary)',
                       backgroundColor: 'transparent'
                     }}
-                    whileHover={{ scale: 1.02, backgroundColor: 'var(--bg-secondary)' }}
+                    whileHover={{ scale: 1.02, color: 'var(--text-secondary)' }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    结束
+                    结束对话
                   </motion.button>
                 </div>
               </div>
@@ -342,6 +530,106 @@ const ChatPage: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      {/* API Key 配置弹窗 */}
+      <AnimatePresence>
+        {showApiKeyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowApiKeyModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="rounded-2xl p-6 max-w-md w-full transition-colors relative"
+              style={{ backgroundColor: 'var(--bg-card)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowApiKeyModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl text-white font-bold">M</span>
+                </div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                  配置 API Key
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  为了使用对话功能，请配置你的阿里百炼 API Key
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    阿里百炼 API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value)
+                      setApiKeyError('')
+                    }}
+                    placeholder="sk-..."
+                    className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    style={{ 
+                      backgroundColor: 'var(--bg-input)',
+                      borderColor: apiKeyError ? '#EF4444' : 'var(--border-color)',
+                      color: 'var(--text-primary)'
+                    }}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                  />
+                  {apiKeyError && (
+                    <p className="text-sm mt-1" style={{ color: '#EF4444' }}>{apiKeyError}</p>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--accent-light)' }}>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--accent)' }}>如何获取 API Key：</strong><br/>
+                    1. 访问 <span style={{ color: 'var(--accent)' }}>https://bailian.console.aliyun.com</span><br/>
+                    2. 创建应用并获取 API Key<br/>
+                    3. 复制 Key 并粘贴到上方输入框
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
+                  <p className="text-xs" style={{ color: 'var(--accent)' }}>
+                    🔒 你的 API Key 仅存储在本地浏览器中，不会上传到任何服务器
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowApiKeyModal(false)}
+                  className="w-full py-3 rounded-xl font-medium transition-all"
+                  style={{ 
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    opacity: isValidating ? 0.5 : 1
+                  }}
+                  disabled={isValidating}
+                >
+                  取消
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

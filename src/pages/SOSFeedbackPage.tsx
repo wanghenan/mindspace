@@ -2,41 +2,145 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FirstAidSuggestion } from '../types'
 import { EmotionType } from '../data/firstAidContent'
+import { useAppStore } from '../store/useAppStore'
 
 interface LocationState {
   emotionType?: EmotionType
   suggestion?: FirstAidSuggestion
   completed?: boolean
+  intensity?: string
+  bodyFeelings?: string[]
+  customInput?: string
+  analysisResult?: {
+    emotionType?: string
+    empathyMessage?: string
+  }
+  fromCelebration?: boolean
 }
 
 const SOSFeedbackPage = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState
+  const addEmotionRecord = useAppStore(state => state.addEmotionRecord)
 
-  const handleFeelBetter = () => {
-    // 返回首页
-    navigate('/', { replace: true })
+  // 获取情绪类型：优先使用分析结果，其次使用传递的类型
+  const getEmotionType = (): string => {
+    return state.analysisResult?.emotionType || 
+           state.emotionType || 
+           '未知情绪'
   }
 
-  const handleStillBad = () => {
-    // 推荐进入AI对话
-    navigate('/chat', { 
-      state: { 
-        fromSOS: true,
-        emotionType: state.emotionType 
-      } 
+  const buildChatNavigationState = (emotionType: string) => ({
+    fromSOS: true,
+    emotionType,
+    intensity: state.intensity,
+    bodyFeelings: state.bodyFeelings,
+    customInput: state.customInput,
+    empathyMessage: state.suggestion?.empathy || state.analysisResult?.empathyMessage
+  })
+
+  const handleFeelBetter = async () => {
+    const emotionType = getEmotionType()
+    console.log('[SOSFeedback] 保存情绪记录 - 好多了:', { 
+      emotionType, 
+      intensity: state.intensity,
+      bodyFeelings: state.bodyFeelings,
+      customInput: state.customInput
     })
+    
+    // 验证必需数据
+    if (!state.intensity) {
+      console.error('[SOSFeedback] ❌ 缺少 intensity 数据，跳过保存')
+      navigate('/', { replace: true })
+      return
+    }
+
+    // 保存情绪记录
+    try {
+      await addEmotionRecord({
+        emotion: emotionType,
+        intensity: state.intensity === 'extreme' ? 10 : 
+                   state.intensity === 'severe' ? 8 : 
+                   state.intensity === 'moderate' ? 5 : 3,
+        trigger: state.customInput || undefined,
+        context: state.bodyFeelings?.length ? state.bodyFeelings.join(', ') : undefined,
+        copingMethod: 'sos-first-aid',
+        effectiveness: 4 // 感觉好多了
+      })
+      console.log('[SOSFeedback] ✅ 情绪记录保存成功')
+    } catch (error) {
+      console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
+    }
+    
+    // 如果来自庆祝页面，直接返回首页
+    if (state.fromCelebration) {
+      navigate('/', { replace: true, state: null })
+    } else {
+      navigate('/', { replace: true })
+    }
   }
 
-  const handleWantToChat = () => {
-    // 无缝跳转到AI对话
-    navigate('/chat', { 
-      state: { 
-        fromSOS: true,
-        emotionType: state.emotionType 
-      } 
-    })
+  const handleStillBad = async () => {
+    const emotionType = getEmotionType()
+    console.log('[SOSFeedback] 保存情绪记录 - 还是很痛苦:', { emotionType, intensity: state.intensity })
+    
+    // 验证必需数据
+    if (!state.intensity) {
+      console.error('[SOSFeedback] ❌ 缺少 intensity 数据，跳过保存')
+      navigate('/chat', { state: buildChatNavigationState(emotionType) })
+      return
+    }
+    
+    // 保存情绪记录（效果较差）
+    try {
+      await addEmotionRecord({
+        emotion: emotionType,
+        intensity: state.intensity === 'extreme' ? 10 : 
+                   state.intensity === 'severe' ? 8 : 
+                   state.intensity === 'moderate' ? 5 : 3,
+        trigger: state.customInput || undefined,
+        context: state.bodyFeelings?.length ? state.bodyFeelings.join(', ') : undefined,
+        copingMethod: 'sos-first-aid',
+        effectiveness: 2 // 效果不太好
+      })
+      console.log('[SOSFeedback] ✅ 情绪记录保存成功')
+    } catch (error) {
+      console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
+    }
+    
+    navigate('/chat', { state: buildChatNavigationState(emotionType) })
+  }
+
+  const handleWantToChat = async () => {
+    const emotionType = getEmotionType()
+    console.log('[SOSFeedback] 保存情绪记录 - 想聊聊:', { emotionType, intensity: state.intensity })
+    
+    // 验证必需数据
+    if (!state.intensity) {
+      console.error('[SOSFeedback] ❌ 缺少 intensity 数据，跳过保存')
+      navigate('/chat', { state: buildChatNavigationState(emotionType) })
+      return
+    }
+    
+    // 保存情绪记录
+    try {
+      await addEmotionRecord({
+        emotion: emotionType,
+        intensity: state.intensity === 'extreme' ? 10 : 
+                   state.intensity === 'severe' ? 8 : 
+                   state.intensity === 'moderate' ? 5 : 3,
+        trigger: state.customInput || undefined,
+        context: state.bodyFeelings?.length ? state.bodyFeelings.join(', ') : undefined,
+        copingMethod: 'sos-first-aid',
+        effectiveness: 3 // 中等效果
+      })
+      console.log('[SOSFeedback] ✅ 情绪记录保存成功')
+    } catch (error) {
+      console.error('[SOSFeedback] ❌ 保存情绪记录失败:', error)
+    }
+    
+    navigate('/chat', { state: buildChatNavigationState(emotionType) })
   }
 
   return (

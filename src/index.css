@@ -29,7 +29,8 @@
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-[data-theme="dark"] {
+/* Dark mode overrides */
+.dark {
   --bg-primary: #191919;
   --bg-secondary: #202020;
   --bg-tertiary: #272727;
@@ -48,12 +49,12 @@
   
   --accent: #8186FF;
   --accent-hover: #6B73FF;
-  --accent-light: rgba(129, 134, 255, 0.1);
+  --accent-light: #2A2A3D;
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
 }
 
 @layer base {
@@ -120,103 +121,84 @@
 @layer components {
   .btn-primary {
     @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-4 px-8 rounded-2xl transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl;
-    min-height: 44px;
-    /* 移动端优化 */
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-
-  .btn-primary:hover .arrow-right {
-    transform: translateX(4px);
-    transition: transform 0.2s ease;
   }
 
   .btn-secondary {
     @apply bg-white hover:bg-neutral-50 text-neutral-700 font-medium py-3 px-6 rounded-xl border border-neutral-200 transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-sm hover:shadow-md;
-    min-height: 44px;
-    /* 移动端优化 */
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
 
-  .btn-secondary:hover .arrow-left {
-    transform: translateX(-4px);
-    transition: transform 0.2s ease;
-  }
-
-  .btn-sos {
-    @apply bg-sos-500 hover:bg-sos-600 text-white font-bold py-6 px-12 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-2xl;
-    min-height: 64px;
-    min-width: 200px;
-    font-size: 1.25rem;
-    animation: pulseSOS 2s ease-in-out infinite;
+  .btn-ghost {
+    @apply bg-primary-50 hover:bg-primary-100 text-primary-700 font-medium py-3 px-6 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 border border-primary-100 hover:border-primary-300;
   }
 
   .card {
-    @apply bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6;
+    @apply bg-white rounded-2xl shadow-md p-6;
   }
 
-  .emotion-tag {
-    @apply bg-primary-50 hover:bg-primary-100 text-primary-700 font-medium py-3 px-6 rounded-full transition-all duration-200 transform hover:scale-105 active:scale-95 border border-primary-100 hover:border-primary-300;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 outline-none;
   }
 
-  .emotion-tag.selected {
-    @apply bg-primary-500 text-white border-primary-500;
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200;
   }
 
-  .loading-circle {
-    @apply w-20 h-20 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 animate-breathe;
+  .nav-item-active {
+    @apply bg-primary-50 text-primary-600 font-medium;
   }
 
-  /* 聊天消息样式 */
-  .message-bubble {
-    @apply rounded-2xl px-4 py-3 max-w-[80%] break-words;
+  .emotion-card {
+    @apply bg-white rounded-2xl shadow-md p-5 cursor-pointer transform hover:scale-102 transition-all duration-200 border-2 border-transparent hover:border-primary-300;
   }
 
-  .message-user {
-    @apply bg-primary-500 text-white ml-auto;
+  .emotion-card-selected {
+    @apply border-primary-500 bg-primary-50;
   }
 
-  .message-assistant {
-    @apply bg-neutral-100 text-neutral-800;
+  .sos-btn {
+    @apply w-full py-4 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform active:scale-95;
+  }
+
+  .sos-btn-hover {
+    @apply hover:from-red-500 hover:to-red-600 hover:scale-102;
   }
 }
 
+/* 自定义动画 */
 @layer utilities {
   .animate-breathe {
     animation: breathe 3s ease-in-out infinite;
   }
-  
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
   .animate-pulse-sos {
     animation: pulseSOS 2s ease-in-out infinite;
   }
 }
 
-/* Custom keyframes */
 @keyframes breathe {
-  0%, 100% { 
-    transform: scale(1); 
-    opacity: 0.8; 
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-  }
-  50% { 
-    transform: scale(1.15); 
-    opacity: 1; 
-    box-shadow: 0 0 0 20px rgba(59, 130, 246, 0);
-  }
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes pulseSOS {
-  0%, 100% { 
-    transform: scale(1); 
-    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); 
-  }
-  50% { 
-    transform: scale(1.05); 
-    box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); 
-  }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
 }
