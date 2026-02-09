@@ -1,29 +1,6 @@
-import axios from 'axios'
 import type { Message } from '../types'
-
-// API配置 - AI对话功能只使用用户配置的API Key
-const getDashScopeApiKey = (): string => {
-  // 检查用户是否已登录
-  const isRegistered = localStorage.getItem('mindspace_is_registered')
-  if (!isRegistered) {
-    console.log('[AI Key] 用户未登录，拒绝提供 API Key')
-    return ''
-  }
-
-  // AI对话功能只使用用户配置的 API Key
-  const localKey = localStorage.getItem('mindspace_dashscope_api_key')
-  console.log('[AI Key] 检查用户配置:', localKey ? `已配置 (${localKey.substring(0, 8)}...)` : '未配置')
-
-  if (localKey && localKey.trim()) {
-    console.log('[AI Key] 使用来源: 用户配置')
-    return localKey.trim()
-  }
-
-  console.log('[AI Key] 警告: 用户未配置 API Key，AI对话功能无法使用')
-  return ''
-}
-
-const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+import { getApiKey } from '../lib/aiKeyManager'
+import type { AIProviderId } from '../types/aiProvider'
 
 // 消息类型
 interface ChatMessage {
@@ -37,6 +14,34 @@ interface AIResponse {
   needsSOS?: boolean
   crisis?: boolean
   emotionTags?: string[]
+}
+
+// 提供商API配置
+const PROVIDER_CONFIG: Record<AIProviderId, { apiUrl: string; model: string }> = {
+  openai: {
+    apiUrl: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini'
+  },
+  zhipu: {
+    apiUrl: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    model: 'glm-4-flash'
+  },
+  grok: {
+    apiUrl: 'https://api.x.ai/v1/chat/completions',
+    model: 'grok-4'
+  },
+  deepseek: {
+    apiUrl: 'https://api.deepseek.com/chat/completions',
+    model: 'deepseek-chat'
+  },
+  minimax: {
+    apiUrl: 'https://api.minimax.chat/v1/text/chatcompletion_v2',
+    model: 'MiniMax-M2.1'
+  },
+  alibaba: {
+    apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    model: 'qwen-plus'
+  }
 }
 
 // MindSpace核心系统提示词
@@ -84,6 +89,44 @@ const EMOTION_KEYWORDS = {
   stress: ['压力', '压抑', '喘不过气', '承受不住']
 }
 
+// 获取存储的配置
+function getStoredConfig(): { selectedProvider: AIProviderId; customApiKeys: Record<string, string> } {
+  if (typeof window === 'undefined') {
+    return { selectedProvider: 'alibaba', customApiKeys: {} }
+  }
+  
+  try {
+    const stored = localStorage.getItem('mindspace-ai-config')
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (error) {
+    console.error('[AI Config] 读取配置失败:', error)
+  }
+  
+  return { selectedProvider: 'alibaba', customApiKeys: {} }
+}
+
+// 获取当前提供商和API Key
+function getProviderApiKey(): { key: string; provider: AIProviderId } {
+  const config = getStoredConfig()
+  const provider = config.selectedProvider
+  
+  // 检查该提供商是否有自定义key
+  const customKey = config.customApiKeys?.[provider]
+  if (customKey?.trim()) {
+    return { key: customKey.trim(), provider }
+  }
+  
+  // 从aiKeyManager获取（会检查env变量）
+  const { key } = getApiKey(provider)
+  if (key) {
+    return { key, provider }
+  }
+  
+  return { key: '', provider }
+}
+
 /**
  * 检测危机关键词
  */
@@ -122,50 +165,51 @@ function extractEmotionTags(text: string): string[] {
 }
 
 /**
- * 调用阿里千问API
+ * 调用AI API
  */
-export async function callDashScopeAPI(
+async function callAIAPI(
   messages: ChatMessage[],
+  provider: AIProviderId,
+  apiKey: string,
   onStream?: (chunk: string) => void
 ): Promise<string> {
-  const apiKey = getDashScopeApiKey()
+  const config = PROVIDER_CONFIG[provider]
   
-  if (!apiKey) {
-    const error = new Error('DASHSCOPE_API_KEY_MISSING') as Error & { code?: string }
-    error.code = 'DASHSCOPE_API_KEY_MISSING'
-    throw error
-  }
-
-  console.log('🔍 准备调用阿里千问API')
-  console.log('📤 API URL:', DASHSCOPE_API_URL)
+  console.log('🔍 准备调用 AI API')
+  console.log('📤 提供商:', provider)
+  console.log('📤 API URL:', config.apiUrl)
+  console.log('📤 模型:', config.model)
   console.log('🔑 API Key前缀:', apiKey.substring(0, 10) + '...')
   console.log('💬 消息数量:', messages.length)
   console.log('🌊 流式响应模式:', !!onStream)
 
-  try {
-    if (onStream) {
-      return await callWithStream(messages, onStream, apiKey)
-    } else {
-      return await callWithoutStream(messages, apiKey)
-    }
-  } catch (error) {
-    console.error('❌ API调用失败:', error)
-    throw error
+  if (onStream) {
+    return await callOpenAIStream(messages, onStream, apiKey, config)
+  } else {
+    return await callOpenAINonStream(messages, apiKey, config)
   }
 }
 
-async function callWithStream(messages: ChatMessage[], onStream: (chunk: string) => void, apiKey: string): Promise<string> {
-  console.log('🌊 使用流式响应模式')
+/**
+ * OpenAI兼容格式流式调用
+ */
+async function callOpenAIStream(
+  messages: ChatMessage[],
+  onStream: (chunk: string) => void,
+  apiKey: string,
+  config: { apiUrl: string; model: string }
+): Promise<string> {
+  console.log('🌊 使用 OpenAI 兼容流式响应模式')
 
   try {
-    const response = await fetch(DASHSCOPE_API_URL, {
+    const response = await fetch(config.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'qwen-plus',
+        model: config.model,
         messages: messages.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -177,18 +221,15 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
       })
     })
 
-    console.log('✅ Fetch响应状态:', response.status)
-
     if (!response.ok) {
       const errorText = await response.text()
       console.error('❌ API错误响应:', errorText)
-      throw new Error(`DashScope API错误: ${response.status} ${errorText}`)
+      throw new Error(`API错误: ${response.status} ${errorText}`)
     }
 
-    // 检查是否是ReadableStream
     if (!response.body || !response.body.getReader) {
       console.warn('⚠️ 不支持流式响应，回退到非流式')
-      return await callWithoutStream(messages, apiKey)
+      return await callOpenAINonStream(messages, apiKey, config)
     }
 
     const decoder = new TextDecoder()
@@ -209,12 +250,6 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
         chunkCount++
         const text = decoder.decode(value, { stream: true })
         
-        // 调试：打印原始响应
-        if (chunkCount <= 3) {
-          console.log(`📝 Chunk ${chunkCount}:`, text.substring(0, 200))
-        }
-        
-        // 解析SSE格式
         const lines = text.split('\n').filter(line => line.trim())
         
         for (const line of lines) {
@@ -234,7 +269,7 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
                 onStream(content)
               }
             } catch (e) {
-              // 忽略解析错误，可能是部分SSE数据
+              // 忽略解析错误
             }
           }
         }
@@ -249,22 +284,28 @@ async function callWithStream(messages: ChatMessage[], onStream: (chunk: string)
   } catch (error) {
     console.error('❌ 流式调用失败:', error)
     console.log('📝 回退到非流式响应...')
-    return await callWithoutStream(messages, apiKey)
+    return await callOpenAINonStream(messages, apiKey, config)
   }
 }
 
-async function callWithoutStream(messages: ChatMessage[], apiKey: string): Promise<string> {
+/**
+ * OpenAI兼容格式非流式调用
+ */
+async function callOpenAINonStream(
+  messages: ChatMessage[],
+  apiKey: string,
+  config: { apiUrl: string; model: string }
+): Promise<string> {
   console.log('📝 使用非流式响应模式')
 
-  const response = await axios({
+  const response = await fetch(config.apiUrl, {
     method: 'POST',
-    url: DASHSCOPE_API_URL,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    data: {
-      model: 'qwen-plus',
+    body: JSON.stringify({
+      model: config.model,
       messages: messages.map(msg => ({
         role: msg.role,
         content: msg.content
@@ -273,19 +314,23 @@ async function callWithoutStream(messages: ChatMessage[], apiKey: string): Promi
       max_tokens: 150,
       top_p: 0.9,
       stream: false
-    },
-    timeout: 30000
+    })
   })
 
-  console.log('✅ API调用成功')
-  console.log('📊 响应状态:', response.status)
-
-  if (response.data.error) {
-    console.error('❌ API返回错误:', response.data.error.message)
-    throw new Error(`DashScope API错误: ${response.data.error.message}`)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error('❌ API错误响应:', errorText)
+    throw new Error(`API错误: ${response.status} ${errorText}`)
   }
 
-  const content = response.data.choices[0].message.content
+  const data = await response.json()
+  
+  if (data.error) {
+    console.error('❌ API返回错误:', data.error.message)
+    throw new Error(`API错误: ${data.error.message}`)
+  }
+
+  const content = data.choices?.[0]?.message?.content || ''
   console.log('🎯 获得AI回复内容:', content.substring(0, 100) + '...')
   return content
 }
@@ -308,10 +353,25 @@ export async function sendChatMessage(
   const emotionTags = extractEmotionTags(userMessage)
   console.log('🏷️ 情绪标签:', emotionTags)
   
+  // 获取提供商配置
+  const { key: apiKey, provider } = getProviderApiKey()
+  console.log('📤 使用提供商:', provider)
+  
+  if (!apiKey) {
+    console.log('[AI Config] 未配置 API Key，使用备用回复')
+    const fallbackContent = generateFallbackResponse(userMessage) + 
+      '\n\n💡 小提示：你可以去「AI 设置」页面配置 API Key，让我变得更聪明哦~'
+    return {
+      content: fallbackContent,
+      needsSOS: false,
+      crisis: false,
+      emotionTags
+    }
+  }
+
   // 构建完整的对话历史
   const fullMessages: ChatMessage[] = [
     { role: 'system', content: MINDSPACE_SYSTEM_PROMPT },
-    // 只保留最近10条消息以控制token数量
     ...historyMessages.slice(-10).map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content
@@ -327,7 +387,7 @@ export async function sendChatMessage(
     }
 
     // 调用AI API
-    const content = await callDashScopeAPI(fullMessages, onStream)
+    const content = await callAIAPI(fullMessages, provider, apiKey, onStream)
     
     return {
       content,
@@ -336,11 +396,19 @@ export async function sendChatMessage(
       emotionTags
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI对话失败:', error)
-    // 返回友好的错误回复
+    
+    // 生成友好错误回复
+    let fallbackContent = generateFallbackResponse(userMessage)
+    
+    // 如果没有配置 AI Key，添加提示
+    if (!apiKey) {
+      fallbackContent += '\n\n💡 小提示：你可以去「AI 设置」页面配置 API Key，让我变得更聪明哦~'
+    }
+    
     return {
-      content: generateFallbackResponse(userMessage),
+      content: fallbackContent,
       needsSOS: false,
       crisis: false,
       emotionTags
@@ -396,7 +464,6 @@ function handleCrisisResponse(crisisType?: 'panic' | 'self_harm'): AIResponse {
 function generateFallbackResponse(userMessage: string): string {
   const input = userMessage.toLowerCase()
   
-  // 更多样化、更自然的情绪回应
   const responses = [
     {
       keywords: ['被骂', '批评', '老板', '领导'],
@@ -454,14 +521,12 @@ function generateFallbackResponse(userMessage: string): string {
     }
   ]
 
-  // 寻找匹配的回应
   for (const response of responses) {
     if (response.keywords.some(keyword => input.includes(keyword))) {
       return response.options[Math.floor(Math.random() * response.options.length)]
     }
   }
 
-  // 更自然的默认回应
   const defaultResponses = [
     '嗯嗯，我在听✨ 能多跟我说说吗？',
     '我理解你的感受，继续说，我在听💭',
@@ -482,7 +547,6 @@ export async function analyzeConversationEmotions(messages: Message[]): Promise<
   triggers: string[]
   summary: string
 }> {
-  // 这里可以调用AI进行深度分析，目前先使用简单的关键词统计
   const emotionCounts: Record<string, number> = {}
   
   for (const message of messages) {
@@ -501,7 +565,7 @@ export async function analyzeConversationEmotions(messages: Message[]): Promise<
   
   return {
     dominantEmotions,
-    triggers: [], // 可以通过AI分析提取
+    triggers: [],
     summary: '这段对话主要围绕' + dominantEmotions.join('、') + '等情绪展开。'
   }
 }

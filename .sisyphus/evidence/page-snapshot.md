@@ -1,0 +1,76 @@
+- generic [active] [ref=e1]:
+  - heading "🔍 AI Provider CORS Verification Test" [level=1] [ref=e2]
+  - paragraph [ref=e3]: Testing CORS support for 8 AI providers by calling their /models endpoint from browser JavaScript.
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "OpenAI" [level=2] [ref=e6]
+      - paragraph [ref=e7]:
+        - strong [ref=e8]: "Endpoint:"
+        - code [ref=e9]: https://api.openai.com/v1/models
+      - generic [ref=e10]:
+        - generic [ref=e12]: ✅ CORS Supported
+        - paragraph [ref=e13]: "CORS is supported! Request reached server (status: 401 Unauthorized - expected with invalid API key)"
+        - generic [ref=e14]: "{ \"status\": 401, \"statusText\": \"\", \"cors\": \"supported\", \"note\": \"401 indicates successful CORS, only authentication failed\" }"
+    - generic [ref=e15]:
+      - heading "Zhipu" [level=2] [ref=e16]
+      - paragraph [ref=e17]:
+        - strong [ref=e18]: "Endpoint:"
+        - code [ref=e19]: https://open.bigmodel.cn/api/paas/v4/models
+      - generic [ref=e20]:
+        - generic [ref=e21]: ✅ CORS Supported
+        - paragraph [ref=e22]: "CORS is supported! Request reached server (status: 401 Unauthorized - expected with invalid API key)"
+        - generic [ref=e23]: "{ \"status\": 401, \"statusText\": \"\", \"cors\": \"supported\", \"note\": \"401 indicates successful CORS, only authentication failed\" }"
+    - generic [ref=e24]:
+      - heading "Gemini" [level=2] [ref=e25]
+      - paragraph [ref=e26]:
+        - strong [ref=e27]: "Endpoint:"
+        - code [ref=e28]: https://generativelanguage.googleapis.com/v1beta/models?key=test-key
+      - generic [ref=e29]:
+        - generic [ref=e30]: ⚠️ Partial
+        - paragraph [ref=e31]: "Unexpected response (status: 400)"
+        - generic [ref=e32]: "{ \"status\": 400, \"statusText\": \"\", \"cors\": \"unclear\", \"response\": { \"error\": { \"code\": 400, \"message\": \"API key not valid. Please pass a valid API key.\", \"status\": \"INVALID_ARGUMENT\", \"details\": [ { \"@type\": \"type.googleapis.com/google.rpc.ErrorInfo\", \"reason\": \"API_KEY_INVALID\", \"domain\": \"googleapis.com\", \"metadata\": { \"service\": \"generativelanguage.googleapis.com\" } }, { \"@type\": \"type.googleapis.com/google.rpc.LocalizedMessage\", \"locale\": \"en-US\", \"message\": \"API key not valid. Please pass a valid API key.\" } ] } } }"
+    - generic [ref=e33]:
+      - heading "DeepSeek" [level=2] [ref=e34]
+      - paragraph [ref=e35]:
+        - strong [ref=e36]: "Endpoint:"
+        - code [ref=e37]: https://api.deepseek.com/v1/models
+      - generic [ref=e38]:
+        - generic [ref=e39]: ✅ CORS Supported
+        - paragraph [ref=e40]: "CORS is supported! Request reached server (status: 401 Unauthorized - expected with invalid API key)"
+        - generic [ref=e41]: "{ \"status\": 401, \"statusText\": \"Unauthorized\", \"cors\": \"supported\", \"note\": \"401 indicates successful CORS, only authentication failed\" }"
+    - generic [ref=e42]:
+      - heading "Alibaba" [level=2] [ref=e43]
+      - paragraph [ref=e44]:
+        - strong [ref=e45]: "Endpoint:"
+        - code [ref=e46]: https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models
+      - generic [ref=e47]:
+        - generic [ref=e48]: ✅ CORS Supported
+        - paragraph [ref=e49]: "CORS is supported! Request reached server (status: 401 Unauthorized - expected with invalid API key)"
+        - generic [ref=e50]: "{ \"status\": 401, \"statusText\": \"\", \"cors\": \"supported\", \"note\": \"401 indicates successful CORS, only authentication failed\" }"
+    - generic [ref=e51]:
+      - heading "MiniMax" [level=2] [ref=e52]
+      - paragraph [ref=e53]:
+        - strong [ref=e54]: "Endpoint:"
+        - code [ref=e55]: https://api.minimax.chat/v1/models
+      - generic [ref=e56]:
+        - generic [ref=e57]: ⚠️ Partial
+        - paragraph [ref=e58]: "Unexpected response (status: 404)"
+        - generic [ref=e59]: "{ \"status\": 404, \"statusText\": \"404 Page not found\", \"cors\": \"unclear\", \"response\": { \"raw\": \"404 page not found\" } }"
+    - generic [ref=e60]:
+      - heading "Grok" [level=2] [ref=e61]
+      - paragraph [ref=e62]:
+        - strong [ref=e63]: "Endpoint:"
+        - code [ref=e64]: https://api.x.ai/v1/models
+      - generic [ref=e65]:
+        - generic [ref=e66]: ⚠️ Partial
+        - paragraph [ref=e67]: "Unexpected response (status: 400)"
+        - generic [ref=e68]: "{ \"status\": 400, \"statusText\": \"\", \"cors\": \"unclear\", \"response\": { \"code\": \"Client specified an invalid argument\", \"error\": \"Incorrect API key provided: te***ey. You can obtain an API key from https://console.x.ai.\" } }"
+    - generic [ref=e69]:
+      - heading "Hunyuan" [level=2] [ref=e70]
+      - paragraph [ref=e71]:
+        - strong [ref=e72]: "Endpoint:"
+        - code [ref=e73]: https://api.hunyuan.cloud.tencent.com/v1/models
+      - generic [ref=e74]:
+        - generic [ref=e75]: ❌ CORS Blocked
+        - paragraph [ref=e76]: "CORS is blocked! Network error: Failed to fetch"
+        - generic [ref=e77]: "{ \"error\": \"Failed to fetch\", \"cors\": \"blocked\", \"note\": \"Network errors usually indicate CORS restrictions\" }"

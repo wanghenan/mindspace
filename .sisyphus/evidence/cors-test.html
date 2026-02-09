@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Provider CORS Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 5px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #569cd6;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success {
+            background: #1e3a1e;
+            border-left: 4px solid #4ec9b0;
+            color: #4ec9b0;
+        }
+        .error {
+            background: #3a1e1e;
+            border-left: 4px solid #f48771;
+            color: #f48771;
+        }
+        .warning {
+            background: #3a3a1e;
+            border-left: 4px solid #dcdcaa;
+            color: #dcdcaa;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.testing {
+            background: #3a3a3a;
+            color: #dcdcaa;
+        }
+        .status.success {
+            background: #1e3a1e;
+            color: #4ec9b0;
+        }
+        .status.error {
+            background: #3a1e1e;
+            color: #f48771;
+        }
+        pre {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 AI Provider CORS Verification Test</h1>
+    <p>Testing CORS support for 8 AI providers by calling their /models endpoint from browser JavaScript.</p>
+
+    <div id="results"></div>
+
+    <script>
+        const providers = [
+            {
+                name: 'OpenAI',
+                endpoint: 'https://api.openai.com/v1/models',
+                headers: { 'Authorization': 'Bearer sk-test-key' }
+            },
+            {
+                name: 'Zhipu',
+                endpoint: 'https://open.bigmodel.cn/api/paas/v4/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            },
+            {
+                name: 'Gemini',
+                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models?key=test-key',
+                headers: {}
+            },
+            {
+                name: 'DeepSeek',
+                endpoint: 'https://api.deepseek.com/v1/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            },
+            {
+                name: 'Alibaba',
+                endpoint: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            },
+            {
+                name: 'MiniMax',
+                endpoint: 'https://api.minimax.chat/v1/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            },
+            {
+                name: 'Grok',
+                endpoint: 'https://api.x.ai/v1/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            },
+            {
+                name: 'Hunyuan',
+                endpoint: 'https://api.hunyuan.cloud.tencent.com/v1/models',
+                headers: { 'Authorization': 'Bearer test-key' }
+            }
+        ];
+
+        const resultsContainer = document.getElementById('results');
+
+        function createTestSection(provider) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.id = `test-${provider.name}`;
+            section.innerHTML = `
+                <h2>${provider.name}</h2>
+                <p><strong>Endpoint:</strong> <code>${provider.endpoint}</code></p>
+                <div class="result">
+                    <span class="status testing">⏳ Testing...</span>
+                </div>
+            `;
+            return section;
+        }
+
+        function updateResult(providerName, status, message, details) {
+            const section = document.getElementById(`test-${providerName}`);
+            const resultDiv = section.querySelector('.result');
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'warning';
+            const statusText = status === 'success' ? '✅ CORS Supported' : status === 'error' ? '❌ CORS Blocked' : '⚠️ Partial';
+
+            resultDiv.innerHTML = `
+                <span class="status ${statusClass}">${statusText}</span>
+                <p>${message}</p>
+                ${details ? `<pre>${JSON.stringify(details, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        async function testProvider(provider) {
+            const section = createTestSection(provider);
+            resultsContainer.appendChild(section);
+
+            try {
+                const response = await fetch(provider.endpoint, {
+                    method: 'GET',
+                    headers: provider.headers
+                });
+
+                const responseText = await response.text();
+                let responseJson;
+                try {
+                    responseJson = JSON.parse(responseText);
+                } catch {
+                    responseJson = { raw: responseText };
+                }
+
+                if (response.status === 401) {
+                    // 401 means CORS is working (request reached the server, only auth failed)
+                    updateResult(
+                        provider.name,
+                        'success',
+                        `CORS is supported! Request reached server (status: 401 Unauthorized - expected with invalid API key)`,
+                        {
+                            status: response.status,
+                            statusText: response.statusText,
+                            cors: 'supported',
+                            note: '401 indicates successful CORS, only authentication failed'
+                        }
+                    );
+                } else if (response.status === 0 || response.type === 'opaque') {
+                    // CORS failed
+                    updateResult(
+                        provider.name,
+                        'error',
+                        `CORS is blocked! Network error or opaque response`,
+                        {
+                            status: response.status,
+                            type: response.type,
+                            cors: 'blocked',
+                            note: 'Request could not be completed due to CORS restrictions'
+                        }
+                    );
+                } else {
+                    // Other responses
+                    updateResult(
+                        provider.name,
+                        'warning',
+                        `Unexpected response (status: ${response.status})`,
+                        {
+                            status: response.status,
+                            statusText: response.statusText,
+                            cors: 'unclear',
+                            response: responseJson
+                        }
+                    );
+                }
+            } catch (error) {
+                // Network error typically means CORS failed
+                updateResult(
+                    provider.name,
+                    'error',
+                    `CORS is blocked! Network error: ${error.message}`,
+                    {
+                        error: error.message,
+                        cors: 'blocked',
+                        note: 'Network errors usually indicate CORS restrictions'
+                    }
+                );
+            }
+        }
+
+        // Test all providers
+        async function runAllTests() {
+            console.log('Starting CORS tests for all providers...');
+            for (const provider of providers) {
+                await testProvider(provider);
+                // Add small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            console.log('All CORS tests completed!');
+        }
+
+        // Start tests automatically
+        runAllTests();
+    </script>
+</body>
+</html>
