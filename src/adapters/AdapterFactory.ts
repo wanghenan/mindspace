@@ -13,7 +13,6 @@ import { ZhipuAdapter } from './ZhipuAdapter.js';
 import { DeepSeekAdapter } from './DeepSeekAdapter.js';
 import { AlibabaAdapter } from './AlibabaAdapter.js';
 import { GrokAdapter } from './GrokAdapter.js';
-import { HunyuanAdapter } from './HunyuanAdapter.js';
 import { GeminiAdapter } from './GeminiAdapter.js';
 
 // Re-export UnsupportedProviderError for convenience
@@ -97,7 +96,7 @@ export class AdapterFactory {
       case 'grok':
         return new GrokAdapter();
       case 'hunyuan':
-        return new HunyuanAdapter();
+        throw new UnsupportedProviderError('Hunyuan provider was removed from scope due to CORS restrictions');
       case 'gemini':
         return new GeminiAdapter();
       case 'minimax':
