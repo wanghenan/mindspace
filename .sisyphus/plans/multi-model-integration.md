@@ -1376,13 +1376,13 @@ Scenario: [Descriptive name]
   - Files: `src/types/errors.ts`, `src/utils/retry.ts`, `src/utils/logger.ts`
   - Pre-commit: `bun test src/utils/__tests__`
 
-- [ ] 11. 测试套件
+- [x] 11. 测试套件
 
   **What to do**:
-  - [ ] 补充单元测试（确保覆盖率 ≥80%）
-  - [ ] 添加集成测试（测试完整流程）
-  - [ ] 添加 E2E 测试（Playwright）
-  - [ ] 验证所有测试通过
+  - [x] 补充单元测试（确保覆盖率 ≥80%）
+  - [x] 添加集成测试（测试完整流程）
+  - [x] 添加 E2E 测试（Playwright）
+  - [x] 验证所有测试通过
 
   **Must NOT do**:
   - 不要跳过任何适配器的测试
