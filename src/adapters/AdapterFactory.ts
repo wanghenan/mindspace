@@ -5,12 +5,19 @@
  * This centralizes adapter creation and makes it easy to add new providers.
  */
 
-import { AIProviderAdapter, ConfigError, UnsupportedProviderError } from '../types/adapter.js';
+import { AIProviderAdapter, UnsupportedProviderError } from '../types/adapter.js';
 import type { AIProviderId } from '../types/aiProvider.js';
 import { OpenAICompatibleAdapter } from './OpenAICompatibleAdapter.js';
+import { OpenAIAdapter } from './OpenAIAdapter.js';
+import { ZhipuAdapter } from './ZhipuAdapter.js';
+import { DeepSeekAdapter } from './DeepSeekAdapter.js';
+import { AlibabaAdapter } from './AlibabaAdapter.js';
+import { GrokAdapter } from './GrokAdapter.js';
+import { HunyuanAdapter } from './HunyuanAdapter.js';
+import { GeminiAdapter } from './GeminiAdapter.js';
 
 // Re-export UnsupportedProviderError for convenience
-export { UnsupportedProviderError } from '../types/adapter';
+export { UnsupportedProviderError } from '../types/adapter.js';
 
 /**
  * Providers that use OpenAI-compatible API format
@@ -77,31 +84,29 @@ export class AdapterFactory {
    * Create an adapter for the specified provider
    */
   private createAdapter(providerId: AIProviderId): AIProviderAdapter {
-    // Handle custom adapters first
-    if (providerId === 'gemini') {
-      throw new UnsupportedProviderError('Gemini adapter not yet implemented - coming in Wave 2');
+    // Use specific adapters for each provider
+    switch (providerId) {
+      case 'openai':
+        return new OpenAIAdapter();
+      case 'zhipu':
+        return new ZhipuAdapter();
+      case 'deepseek':
+        return new DeepSeekAdapter();
+      case 'alibaba':
+        return new AlibabaAdapter();
+      case 'grok':
+        return new GrokAdapter();
+      case 'hunyuan':
+        return new HunyuanAdapter();
+      case 'gemini':
+        return new GeminiAdapter();
+      case 'minimax':
+        return new OpenAICompatibleAdapter({
+          provider: providerId,
+        });
+      default:
+        throw new UnsupportedProviderError(providerId);
     }
-
-    // Check if it's an OpenAI-compatible provider
-    if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
-      return new OpenAICompatibleAdapter({
-        provider: providerId,
-      });
-    }
-
-    // Handle special cases or unsupported providers
-    if (providerId === 'hunyuan') {
-      // Hunyuan uses a different API format (Tencent Cloud)
-      // For now, throw an error indicating it needs a custom adapter
-      throw new ConfigError(
-        'Hunyuan provider requires a custom adapter implementation',
-        undefined,
-        providerId
-      );
-    }
-
-    // Unknown provider
-    throw new UnsupportedProviderError(providerId);
   }
 
   /**
