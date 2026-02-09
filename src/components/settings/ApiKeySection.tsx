@@ -71,11 +71,9 @@ const ApiKeySection: React.FC = () => {
       openai: 'https://platform.openai.com/api-keys',
       zhipu: 'https://open.bigmodel.cn/usercenter/apikeys',
       grok: 'https://console.x.ai/',
-      gemini: 'https://aistudio.google.com/app/apikey',
       deepseek: 'https://platform.deepseek.com/api_keys',
       minimax: 'https://www.minimaxi.com/user-center/basic-information/interface-key',
       alibaba: 'https://bailian.console.aliyun.com/',
-      hunyuan: '#',
     }
     return helpUrls[selectedProvider]
   }

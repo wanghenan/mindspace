@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useUserStore } from '../store/useUserStore'
 import { useAppStore } from '../store/useAppStore'
 import { useChatStore } from '../store/chatStore'
@@ -47,18 +47,10 @@ export default function AccountPage() {
     message: string;
   } | null>(null)
 
-  // API Key 管理状态
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
-  const [apiKey, setApiKey] = useState('')
-  const [apiKeyError, setApiKeyError] = useState('')
-  const [apiKeyStatus, setApiKeyStatus] = useState<'loading' | 'configured' | 'not_set'>('loading')
-  const [isValidating, setIsValidating] = useState(false)
-
   // 初始化
   useEffect(() => {
     initializeUser()
     loadStorageStats()
-    checkApiKey()
   }, [initializeUser, loadStorageStats])
 
   useEffect(() => {
@@ -68,16 +60,6 @@ export default function AccountPage() {
       setSelectedAvatar(user.avatar || '👤')
     }
   }, [user])
-
-  const checkApiKey = () => {
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-    const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
-    if (envKey || storedKey) {
-      setApiKeyStatus('configured')
-    } else {
-      setApiKeyStatus('not_set')
-    }
-  }
 
   const showNotificationFn = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message })
@@ -102,16 +84,7 @@ export default function AccountPage() {
       return
     }
 
-    // 登录成功后，检查是否配置过 API Key
-    const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-
-    if (!storedKey && !envKey) {
-      // 未配置 API Key，提示用户配置
-      alert('登录成功！\n\n为使用 AI 对话功能，建议您先配置 API Key。\n点击「设置」卡片中的「配置」按钮即可。')
-    } else {
-      alert('登录成功！')
-    }
+    alert('登录成功！')
   }
 
   const handleSaveProfile = async () => {
@@ -174,93 +147,6 @@ export default function AccountPage() {
     } finally {
       setIsDeleting(false)
     }
-  }
-
-  // API Key 管理函数
-  const validateApiKey = async (key: string): Promise<boolean> => {
-    console.log('[API Key] 开始验证 Key...')
-    setIsValidating(true)
-    setApiKeyError('')
-
-    try {
-      const testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-      const response = await fetch(testUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key.trim()}`
-        },
-        body: JSON.stringify({
-          model: 'qwen-plus',
-          messages: [
-            { role: 'user', content: 'Hi' }
-          ],
-          max_tokens: 5,
-          temperature: 0.1
-        })
-      })
-
-      console.log('[API Key] 验证响应状态:', response.status)
-
-      if (response.status === 401) {
-        console.warn('[API Key] 验证失败: Key 无效 (401)')
-        setApiKeyError('API Key 无效，请检查后重试')
-        return false
-      }
-
-      if (!response.ok) {
-        console.warn('[API Key] 验证失败: 服务器错误', response.status)
-        setApiKeyError(`验证失败 (${response.status})，请稍后重试`)
-        return false
-      }
-
-      console.log('[API Key] ✅ 验证成功')
-      return true
-    } catch (error) {
-      console.error('[API Key] 验证异常:', error)
-      setApiKeyError('验证失败，请检查网络连接')
-      return false
-    } finally {
-      setIsValidating(false)
-    }
-  }
-
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      setApiKeyError('请输入 API Key')
-      return
-    }
-    if (apiKey.length < 10) {
-      setApiKeyError('API Key 格式不正确')
-      return
-    }
-
-    const isValid = await validateApiKey(apiKey)
-    if (!isValid) {
-      return
-    }
-
-    localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
-    setShowApiKeyModal(false)
-    setApiKeyError('')
-    setApiKeyStatus('configured')
-    alert('API Key 验证通过，已保存')
-  }
-
-  const handleDeleteApiKey = () => {
-    if (window.confirm('确定要删除 API Key 吗？删除后将无法使用对话功能。')) {
-      localStorage.removeItem('mindspace_dashscope_api_key')
-      setApiKeyStatus('not_set')
-      setApiKey('')
-      alert('API Key 已删除')
-    }
-  }
-
-  const handleOpenApiKeyModal = () => {
-    const storedKey = localStorage.getItem('mindspace_dashscope_api_key') || ''
-    setApiKey(storedKey)
-    setApiKeyError('')
-    setShowApiKeyModal(true)
   }
 
   const formatDate = (timestamp: number) => {
@@ -686,49 +572,32 @@ export default function AccountPage() {
             ⚙️ 设置
           </h3>
 
-          {/* AI 对话配置 */}
-          <div className="mb-6">
-            <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
-              AI 对话配置
-            </h4>
-
-            <div className="flex items-center justify-between p-3 rounded-xl mb-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${apiKeyStatus === 'configured' ? 'bg-green-500' : apiKeyStatus === 'loading' ? 'bg-gray-300' : 'bg-yellow-500'}`}></div>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {apiKeyStatus === 'configured' ? 'API Key 已配置' : apiKeyStatus === 'loading' ? '检查中...' : '未配置 API Key'}
-                  </p>
-                  <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    {apiKeyStatus === 'configured' ? '可正常使用对话功能' : '需要配置才能使用 AI 对话'}
-                  </p>
-                </div>
+          {/* AI 配置入口 */}
+          <a
+            href="/settings"
+            className="flex items-center justify-between p-4 rounded-xl transition-all hover:opacity-80"
+            style={{ backgroundColor: 'var(--bg-secondary)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </div>
-              <button
-                onClick={handleOpenApiKeyModal}
-                className="px-3 py-1.5 rounded-lg font-medium transition-all text-sm"
-                style={{
-                  backgroundColor: 'var(--accent)',
-                  color: 'white'
-                }}
-              >
-                {apiKeyStatus === 'configured' ? '更新' : '配置'}
-              </button>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  AI 设置
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  配置 AI 提供商和模型
+                </p>
+              </div>
             </div>
-
-            {apiKeyStatus === 'configured' && (
-              <button
-                onClick={handleDeleteApiKey}
-                className="w-full py-2 rounded-lg font-medium transition-all text-sm"
-                style={{
-                  border: '1px solid #EF4444',
-                  color: '#EF4444'
-                }}
-              >
-                删除 API Key
-              </button>
-            )}
-          </div>
+            <svg className="w-5 h-5" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
 
           {/* 退出登录 */}
           <button
@@ -745,112 +614,6 @@ export default function AccountPage() {
             </p>
           </div>
         </motion.div>
-
-        {/* API Key 配置弹窗 */}
-        <AnimatePresence>
-          {showApiKeyModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="rounded-2xl p-6 max-w-md w-full"
-                style={{ backgroundColor: 'var(--bg-card)' }}
-              >
-                <div className="text-center mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl text-white font-bold">M</span>
-                  </div>
-                  <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    配置阿里百炼 API Key
-                  </h2>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    用于启用 AI 对话功能
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                      API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => {
-                        setApiKey(e.target.value)
-                        setApiKeyError('')
-                      }}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2"
-                      style={{
-                        backgroundColor: 'var(--bg-input)',
-                        borderColor: apiKeyError ? '#EF4444' : 'var(--border-color)',
-                        color: 'var(--text-primary)'
-                      }}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSaveApiKey()}
-                    />
-                    {apiKeyError && (
-                      <p className="text-sm mt-1" style={{ color: '#EF4444' }}>{apiKeyError}</p>
-                    )}
-                  </div>
-
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>获取方式：</strong><br/>
-                      1. 访问 <span style={{ color: 'var(--accent)' }}>bailian.console.aliyun.com</span><br/>
-                      2. 创建应用并获取 API Key<br/>
-                      3. 复制并粘贴到上方输入框
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
-                    <p className="text-xs" style={{ color: 'var(--accent)' }}>
-                      🔒 API Key 仅存储在本地浏览器中
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowApiKeyModal(false)}
-                      className="flex-1 py-3 rounded-xl font-medium transition-all"
-                      style={{
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-secondary)'
-                      }}
-                      disabled={isValidating}
-                    >
-                      取消
-                    </button>
-                    <button
-                      onClick={handleSaveApiKey}
-                      className="flex-1 py-3 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
-                      style={{
-                        backgroundColor: isValidating ? 'var(--text-tertiary)' : 'var(--accent)',
-                        cursor: isValidating ? 'not-allowed' : 'pointer'
-                      }}
-                      disabled={isValidating}
-                    >
-                      {isValidating ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                          验证中...
-                        </>
-                      ) : (
-                        '保存'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* 删除确认弹窗 */}
         {showConfirm && (

@@ -8,11 +8,9 @@ export type AIProviderId =
   | 'openai'
   | 'zhipu'
   | 'grok'
-  | 'gemini'
   | 'deepseek'
   | 'minimax'
-  | 'alibaba'
-  | 'hunyuan';
+  | 'alibaba';
 
 export interface AIProviderConfig {
   id: AIProviderId;
@@ -48,14 +46,6 @@ export const AI_PROVIDERS: Record<AIProviderId, AIProviderConfig> = {
     defaultModel: 'grok-beta',
     apiBase: 'https://api.x.ai/v1',
   },
-  gemini: {
-    id: 'gemini',
-    name: 'Google Gemini',
-    envVarName: 'VITE_GEMINI_API_KEY',
-    requiresApiKey: true,
-    defaultModel: 'gemini-2.0-flash-exp',
-    apiBase: 'https://generativelanguage.googleapis.com/v1beta',
-  },
   deepseek: {
     id: 'deepseek',
     name: 'DeepSeek',
@@ -79,13 +69,6 @@ export const AI_PROVIDERS: Record<AIProviderId, AIProviderConfig> = {
     requiresApiKey: true,
     defaultModel: 'qwen-plus',
     apiBase: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-  },
-  hunyuan: {
-    id: 'hunyuan',
-    name: 'Tencent Hunyuan',
-    envVarName: '',
-    requiresApiKey: false,
-    defaultModel: 'hunyuan-lite',
   },
 };
 

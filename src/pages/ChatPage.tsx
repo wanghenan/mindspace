@@ -10,10 +10,6 @@ import type { Conversation } from '../types'
 const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('')
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
-  const [apiKey, setApiKey] = useState('')
-  const [apiKeyError, setApiKeyError] = useState('')
-  const [isValidating, setIsValidating] = useState(false)
   const { theme, toggleTheme } = useThemeStore()
   const location = useLocation()
   
@@ -42,27 +38,6 @@ const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const hasInitializedSOS = useRef(false)
-
-  // 检查用户登录状态和 API Key 配置
-  useEffect(() => {
-    // 首先检查是否已登录
-    const isRegistered = localStorage.getItem('mindspace_is_registered')
-    if (!isRegistered) {
-      // 未登录，不显示 API Key 配置弹窗，将在发送消息时提示登录
-      console.log('[ChatPage] 用户未登录')
-      return
-    }
-
-    // 已登录，检查 API Key 配置
-    const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-    if (!storedKey && !envKey) {
-      setShowApiKeyModal(true)
-    }
-    if (storedKey) {
-      setApiKey(storedKey)
-    }
-  }, [])
 
   useEffect(() => {
     // 如果来自 SOS 且未初始化过，强制创建新对话
@@ -132,83 +107,8 @@ const ChatPage: React.FC = () => {
     }
   }, [messages, hasMessages])
 
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      setApiKeyError('请输入 API Key')
-      return
-    }
-    if (apiKey.length < 10) {
-      setApiKeyError('API Key 格式不正确')
-      return
-    }
-
-    // 验证 API Key
-    setIsValidating(true)
-    setApiKeyError('')
-
-    try {
-      const testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-      const response = await fetch(testUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey.trim()}`
-        },
-        body: JSON.stringify({
-          model: 'qwen-plus',
-          messages: [
-            { role: 'user', content: 'Hi' }
-          ],
-          max_tokens: 5,
-          temperature: 0.1
-        })
-      })
-
-      if (response.status === 401) {
-        setApiKeyError('API Key 无效，请检查后重试')
-        setIsValidating(false)
-        return
-      }
-
-      if (!response.ok) {
-        setApiKeyError(`验证失败 (${response.status})，请稍后重试`)
-        setIsValidating(false)
-        return
-      }
-
-      // 验证成功，保存 Key
-      localStorage.setItem('mindspace_dashscope_api_key', apiKey.trim())
-      setShowApiKeyModal(false)
-      setApiKeyError('')
-      setIsValidating(false)
-      alert('API Key 验证通过，已保存')
-
-    } catch (error) {
-      setApiKeyError('验证失败，请检查网络连接')
-      setIsValidating(false)
-    }
-  }
-
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return
-
-    // 首先检查登录状态
-    const isRegistered = localStorage.getItem('mindspace_is_registered')
-    if (!isRegistered) {
-      alert('请先登录后再使用 AI 对话功能')
-      window.location.href = '/account'
-      return
-    }
-
-    // 检查 API Key 配置
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-    const localKey = localStorage.getItem('mindspace_dashscope_api_key')
-
-    if (!envKey && !localKey) {
-      console.log('[ChatPage] 没有配置 API Key，显示配置弹窗')
-      setShowApiKeyModal(true)
-      return
-    }
 
     const userMessage = {
       role: 'user' as const,
@@ -547,106 +447,6 @@ const ChatPage: React.FC = () => {
           </div>
         )}
       </motion.div>
-
-      {/* API Key 配置弹窗 */}
-      <AnimatePresence>
-        {showApiKeyModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={() => setShowApiKeyModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="rounded-2xl p-6 max-w-md w-full transition-colors relative"
-              style={{ backgroundColor: 'var(--bg-card)' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* 关闭按钮 */}
-              <button
-                onClick={() => setShowApiKeyModal(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-all"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-white font-bold">M</span>
-                </div>
-                <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                  配置 API Key
-                </h2>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  为了使用对话功能，请配置你的阿里百炼 API Key
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                    阿里百炼 API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => {
-                      setApiKey(e.target.value)
-                      setApiKeyError('')
-                    }}
-                    placeholder="sk-..."
-                    className="w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    style={{ 
-                      backgroundColor: 'var(--bg-input)',
-                      borderColor: apiKeyError ? '#EF4444' : 'var(--border-color)',
-                      color: 'var(--text-primary)'
-                    }}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSaveApiKey()}
-                  />
-                  {apiKeyError && (
-                    <p className="text-sm mt-1" style={{ color: '#EF4444' }}>{apiKeyError}</p>
-                  )}
-                </div>
-
-                <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--accent-light)' }}>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--accent)' }}>如何获取 API Key：</strong><br/>
-                    1. 访问 <span style={{ color: 'var(--accent)' }}>https://bailian.console.aliyun.com</span><br/>
-                    2. 创建应用并获取 API Key<br/>
-                    3. 复制 Key 并粘贴到上方输入框
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
-                  <p className="text-xs" style={{ color: 'var(--accent)' }}>
-                    🔒 你的 API Key 仅存储在本地浏览器中，不会上传到任何服务器
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowApiKeyModal(false)}
-                  className="w-full py-3 rounded-xl font-medium transition-all"
-                  style={{ 
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    opacity: isValidating ? 0.5 : 1
-                  }}
-                  disabled={isValidating}
-                >
-                  取消
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

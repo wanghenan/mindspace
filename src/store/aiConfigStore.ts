@@ -127,6 +127,11 @@ export const useAIConfigStore = create<AIConfigStore>((set, get) => {
     },
 
     validateApiKey: async (provider, apiKey) => {
+      // MiniMax 和部分提供商使用简化的直接验证，避免 CORS 问题
+      if (provider === 'minimax' || provider === 'zhipu') {
+        return validateKey(provider, apiKey);
+      }
+      
       try {
         const adapter = adapterFactory.getAdapter(provider);
         if (adapter.validateApiKey) {

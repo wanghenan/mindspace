@@ -70,23 +70,6 @@ export const PROVIDER_MODELS: Record<AIProviderId, AIModel[]> = {
     }
   ],
 
-  gemini: [
-    {
-      id: 'gemini-3-pro',
-      name: 'Gemini 3 Pro',
-      provider: 'gemini',
-      contextLength: 200000,
-      supportsStreaming: true
-    },
-    {
-      id: 'gemini-3-flash',
-      name: 'Gemini 3 Flash',
-      provider: 'gemini',
-      contextLength: 1000000,
-      supportsStreaming: true
-    }
-  ],
-
   deepseek: [
     {
       id: 'deepseek-chat',
@@ -160,9 +143,7 @@ export const PROVIDER_MODELS: Record<AIProviderId, AIModel[]> = {
       contextLength: 131072,
       supportsStreaming: true
     }
-  ],
-
-  hunyuan: []
+  ]
 };
 
 /**

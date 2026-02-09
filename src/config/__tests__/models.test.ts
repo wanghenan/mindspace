@@ -17,8 +17,8 @@ import { AIProviderId } from '../../types/aiProvider';
 
 describe('Model Configuration', () => {
   describe('Provider Coverage', () => {
-    it('should have models for all 7 providers', () => {
-      const providers: AIProviderId[] = ['openai', 'zhipu', 'grok', 'gemini', 'deepseek', 'minimax', 'alibaba'];
+    it('should have models for all 6 providers', () => {
+      const providers: AIProviderId[] = ['openai', 'zhipu', 'grok', 'deepseek', 'minimax', 'alibaba'];
       
       providers.forEach(provider => {
         const models = getModelsByProvider(provider);
@@ -26,7 +26,7 @@ describe('Model Configuration', () => {
       });
     });
 
-    it('should have minimum 7 total models', () => {
+    it('should have minimum 6 total models', () => {
       const allModels = getAllModels();
       expect(allModels.length).toBeGreaterThanOrEqual(7);
     });
@@ -90,13 +90,6 @@ describe('Model Configuration', () => {
       expect(zhipuModels.map((m: AIModel) => m.id)).toEqual(['glm-4.7', 'glm-4.7-flash', 'glm-4.6']);
     });
 
-    it('should have Gemini models', () => {
-      const geminiModels = getModelsByProvider('gemini');
-      
-      expect(geminiModels.length).toBe(2);
-      expect(geminiModels.map((m: AIModel) => m.id)).toEqual(['gemini-3-pro', 'gemini-3-flash']);
-    });
-
     it('should have DeepSeek models', () => {
       const deepseekModels = getModelsByProvider('deepseek');
       
@@ -125,8 +118,8 @@ describe('Model Configuration', () => {
       expect(grokModels.map((m: AIModel) => m.id)).toEqual(['grok-4', 'grok-4-fast']);
     });
 
-    it('should have no Hunyuan models (excluded from scope)', () => {
-      const hunyuanModels = getModelsByProvider('hunyuan');
+    it('should have no Hunyuan models (provider removed)', () => {
+      const hunyuanModels = getModelsByProvider('hunyuan' as AIProviderId);
       
       expect(hunyuanModels.length).toBe(0);
     });
@@ -171,7 +164,7 @@ describe('Model Configuration', () => {
 
   describe('Provider Assignment', () => {
     it('should correctly assign provider to each model', () => {
-      const providers = ['openai', 'zhipu', 'grok', 'gemini', 'deepseek', 'minimax', 'alibaba', 'hunyuan'] as AIProviderId[];
+      const providers = ['openai', 'zhipu', 'grok', 'gemini', 'deepseek', 'minimax', 'alibaba'] as AIProviderId[];
       
       providers.forEach(provider => {
         const models = getModelsByProvider(provider);

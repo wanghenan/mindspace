@@ -14,7 +14,6 @@ const SettingsPage: React.FC = () => {
     const names: Record<string, string> = {
       'openai': 'OpenAI',
       'zhipu': '智谱 AI',
-      'gemini': 'Google Gemini',
       'deepseek': 'DeepSeek',
       'alibaba': '阿里云',
       'minimax': 'MiniMax',

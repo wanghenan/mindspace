@@ -1,10 +1,8 @@
 // AI提供商类型定义
 export type AIProviderId =
-  | 'hunyuan'
   | 'openai'
   | 'zhipu'
   | 'grok'
-  | 'gemini'
   | 'deepseek'
   | 'minimax'
   | 'alibaba'
@@ -21,14 +19,6 @@ export interface AIProvider {
 
 // 所有支持的AI提供商配置
 const PROVIDERS: Record<AIProviderId, AIProvider> = {
-  hunyuan: {
-    id: 'hunyuan',
-    name: '腾讯混元',
-    baseUrl: 'https://hunyuan.cloud.tencent.com',
-    defaultModel: 'hunyuan-pro',
-    description: '腾讯混元大模型',
-    features: ['多轮对话', '文本生成', '语义理解']
-  },
   openai: {
     id: 'openai',
     name: 'OpenAI',
@@ -52,14 +42,6 @@ const PROVIDERS: Record<AIProviderId, AIProvider> = {
     defaultModel: 'grok-beta',
     description: 'xAI Grok大模型',
     features: ['实时信息', '幽默对话', '深度思考']
-  },
-  gemini: {
-    id: 'gemini',
-    name: 'Google Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModel: 'gemini-pro',
-    description: 'Google Gemini大模型',
-    features: ['多模态', '长文本', '逻辑推理']
   },
   deepseek: {
     id: 'deepseek',
@@ -88,7 +70,7 @@ const PROVIDERS: Record<AIProviderId, AIProvider> = {
 }
 
 // 默认提供商
-export const DEFAULT_PROVIDER: AIProviderId = 'hunyuan'
+export const DEFAULT_PROVIDER: AIProviderId = 'openai'
 
 // 获取指定提供商配置
 export function getProvider(id: AIProviderId): AIProvider | undefined {

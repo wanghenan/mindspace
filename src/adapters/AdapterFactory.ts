@@ -13,7 +13,6 @@ import { ZhipuAdapter } from './ZhipuAdapter.js';
 import { DeepSeekAdapter } from './DeepSeekAdapter.js';
 import { AlibabaAdapter } from './AlibabaAdapter.js';
 import { GrokAdapter } from './GrokAdapter.js';
-import { GeminiAdapter } from './GeminiAdapter.js';
 
 // Re-export UnsupportedProviderError for convenience
 export { UnsupportedProviderError } from '../types/adapter.js';
@@ -95,8 +94,6 @@ export class AdapterFactory {
         return new AlibabaAdapter();
       case 'grok':
         return new GrokAdapter();
-      case 'gemini':
-        return new GeminiAdapter();
       case 'minimax':
         return new OpenAICompatibleAdapter({
           provider: providerId,
@@ -110,10 +107,7 @@ export class AdapterFactory {
    * Check if a provider is supported
    */
   isSupported(providerId: AIProviderId): boolean {
-    return (
-      OPENAI_COMPATIBLE_PROVIDERS.includes(providerId) ||
-      providerId === 'gemini'
-    );
+    return OPENAI_COMPATIBLE_PROVIDERS.includes(providerId);
   }
 
   /**
@@ -128,7 +122,7 @@ export class AdapterFactory {
    * Get all supported provider IDs
    */
   getSupportedProviders(): AIProviderId[] {
-    return [...OPENAI_COMPATIBLE_PROVIDERS, 'gemini'];
+    return [...OPENAI_COMPATIBLE_PROVIDERS];
   }
 }
 

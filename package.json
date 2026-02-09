@@ -27,6 +27,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.0",

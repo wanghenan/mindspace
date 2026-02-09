@@ -1,37 +1,47 @@
 import type { AIProviderId, ApiKeySource } from '../types/aiProvider';
 import { AI_PROVIDERS } from '../types/aiProvider';
 
-const CUSTOM_API_KEYS_STORAGE_KEY = 'mindspace_customApiKeys';
+const STORAGE_KEY = 'mindspace-ai-config';
 
-interface CustomApiKeys {
-  [providerId: string]: string;
+interface StoredConfig {
+  selectedProvider: AIProviderId;
+  customApiKeys: Partial<Record<AIProviderId, string>>;
+  defaultModels: Partial<Record<AIProviderId, string>>;
 }
 
-function getCustomApiKeys(): CustomApiKeys {
-  try {
-    const stored = localStorage.getItem(CUSTOM_API_KEYS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
+function getStoredConfig(): StoredConfig {
+  if (typeof window === 'undefined') {
+    return {
+      selectedProvider: 'alibaba',
+      customApiKeys: {},
+      defaultModels: {}
+    };
   }
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('[AI Key Manager] 读取配置失败:', error);
+  }
+  
+  return {
+    selectedProvider: 'alibaba',
+    customApiKeys: {},
+    defaultModels: {}
+  };
 }
 
 export function getApiKey(provider: AIProviderId): ApiKeySource {
   const providerConfig = AI_PROVIDERS[provider];
 
-  // Special case: hunyuan uses cloudbase-env marker
-  if (provider === 'hunyuan') {
-    return {
-      key: 'cloudbase-env',
-      source: 'cloudbase-env'
-    };
-  }
-
-  // First: check localStorage customApiKeys
-  const customKeys = getCustomApiKeys();
-  const localKey = customKeys[provider];
+  // Check localStorage customApiKeys from mindspace-ai-config
+  const config = getStoredConfig();
+  const localKey = config.customApiKeys?.[provider];
+  
   if (localKey?.trim()) {
-    console.log(`[AI Key Manager] ${provider} key source: localStorage`);
     return {
       key: localKey.trim(),
       source: 'localStorage'
@@ -39,9 +49,10 @@ export function getApiKey(provider: AIProviderId): ApiKeySource {
   }
 
   // Second: check environment variables
-  const envKey = import.meta.env[providerConfig.envVarName];
+  const envVarName = providerConfig.envVarName;
+  const envKey = import.meta.env[envVarName];
+  
   if (envKey?.trim()) {
-    console.log(`[AI Key Manager] ${provider} key source: env var (${providerConfig.envVarName})`);
     return {
       key: envKey.trim(),
       source: 'env'
@@ -49,7 +60,6 @@ export function getApiKey(provider: AIProviderId): ApiKeySource {
   }
 
   // Third: no key available
-  console.log(`[AI Key Manager] ${provider} key source: none (not configured)`);
   return {
     key: '',
     source: 'none'
@@ -94,10 +104,6 @@ export async function validateApiKey(provider: AIProviderId, apiKey: string): Pr
         };
         break;
 
-      case 'gemini':
-        testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-        break;
-
       case 'deepseek':
         testUrl = 'https://api.deepseek.com/v1/models';
         headers = {
@@ -108,9 +114,30 @@ export async function validateApiKey(provider: AIProviderId, apiKey: string): Pr
       case 'minimax':
         testUrl = 'https://api.minimax.chat/v1/text/chatcompletion_v2';
         headers = {
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
         };
-        break;
+        // MiniMax 没有 /models 端点，用简单的 chat completion 调用来验证
+        const response = await fetch(testUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: 'MiniMax-M2.1',
+            messages: [{ role: 'user', content: 'hi' }],
+            max_tokens: 5
+          })
+        });
+        if (response.ok || response.status === 400) {
+          // 400 可能是内容过滤，但 key 是有效的
+          console.log(`[AI Key Manager] ${provider} key validation: success`);
+          return true;
+        }
+        if (response.status === 401 || response.status === 403) {
+          console.log(`[AI Key Manager] ${provider} key validation: failed (invalid key)`);
+          return false;
+        }
+        console.log(`[AI Key Manager] ${provider} key validation: failed (status ${response.status})`);
+        return false;
 
       case 'alibaba':
         testUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
@@ -118,9 +145,6 @@ export async function validateApiKey(provider: AIProviderId, apiKey: string): Pr
           'Authorization': `Bearer ${apiKey}`
         };
         break;
-
-      case 'hunyuan':
-        return true;
 
       default:
         return false;
@@ -150,9 +174,16 @@ export async function validateApiKey(provider: AIProviderId, apiKey: string): Pr
 }
 
 export function isProviderConfigured(provider: AIProviderId): boolean {
+  const providerConfig = AI_PROVIDERS[provider];
+  
+  // Provider doesn't exist
+  if (!providerConfig) {
+    return false;
+  }
+  
   const { key } = getApiKey(provider);
 
-  if (AI_PROVIDERS[provider].requiresApiKey === false) {
+  if (providerConfig.requiresApiKey === false) {
     return true;
   }
 

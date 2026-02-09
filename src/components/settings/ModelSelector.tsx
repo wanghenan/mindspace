@@ -74,9 +74,7 @@ const ModelSelector: React.FC = () => {
           className="text-sm"
           style={{ color: 'var(--text-secondary)' }}
         >
-          {selectedProvider === 'hunyuan'
-            ? '腾讯混元暂无可选模型，使用默认模型'
-            : '该提供商暂无可用模型'}
+          该提供商暂无可用模型
         </p>
       </div>
     )
