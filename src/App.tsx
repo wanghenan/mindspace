@@ -16,6 +16,7 @@ import SOSFeedbackPage from './pages/SOSFeedbackPage'
 import SOSCelebrationPage from './pages/SOSCelebrationPage'
 import PrivacySettingsPage from './pages/PrivacySettingsPage'
 import UserProfilePage from './pages/UserProfilePage'
+import SettingsPage from './pages/SettingsPage'
 
 function App() {
   const location = useLocation()
@@ -159,8 +160,8 @@ function App() {
             } 
           />
           {/* 用户资料页面 */}
-          <Route 
-            path="/profile" 
+          <Route
+            path="/profile"
             element={
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -170,7 +171,21 @@ function App() {
               >
                 <UserProfilePage />
               </motion.div>
-            } 
+            }
+          />
+          {/* AI 设置页面 */}
+          <Route
+            path="/settings"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SettingsPage />
+              </motion.div>
+            }
           />
           {/* 其他路由将逐步添加 */}
         </Routes>
