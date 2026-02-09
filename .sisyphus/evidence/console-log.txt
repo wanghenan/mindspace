@@ -1,0 +1,13 @@
+Total messages: 12 (Errors: 10, Warnings: 0)
+Returning 10 messages for level "error"
+
+[ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/favicon.ico:0
+[ERROR] Failed to load resource: the server responded with a status of 401 () @ https://api.openai.com/v1/models:0
+[ERROR] Failed to load resource: the server responded with a status of 401 () @ https://open.bigmodel.cn/api/paas/v4/models:0
+[ERROR] Failed to load resource: the server responded with a status of 400 () @ https://generativelanguage.googleapis.com/v1beta/models?key=test-key:0
+[ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://api.deepseek.com/v1/models:0
+[ERROR] Failed to load resource: the server responded with a status of 401 () @ https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models:0
+[ERROR] Failed to load resource: the server responded with a status of 404 (404 Page not found) @ https://api.minimax.chat/v1/models:0
+[ERROR] Failed to load resource: the server responded with a status of 400 () @ https://api.x.ai/v1/models:0
+[ERROR] Access to fetch at 'https://api.hunyuan.cloud.tencent.com/v1/models' from origin 'http://localhost:8765' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status. @ http://localhost:8765/cors-test.html:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ https://api.hunyuan.cloud.tencent.com/v1/models:0

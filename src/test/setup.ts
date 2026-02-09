@@ -2,5 +2,8 @@ import '@testing-library/jest-dom'
 import { afterEach } from 'vitest'
 
 afterEach(() => {
-  document.body.innerHTML = ''
+  // Only clean DOM if in browser/jsdom environment
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML = ''
+  }
 })

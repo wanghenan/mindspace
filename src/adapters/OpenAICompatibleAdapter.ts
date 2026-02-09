@@ -6,7 +6,7 @@
  */
 
 import { OpenAI } from 'openai';
-import { AIProviderAdapter, ChatRequest, ChatResponse, APIError, ConfigError } from '../types/adapter';
+import { AIProviderAdapter, ChatRequest, ChatResponse, APIError, ConfigError, StreamHandler } from '../types/adapter';
 import type { AIProviderId } from '../types/aiProvider';
 import { AI_PROVIDERS } from '../types/aiProvider';
 import { getApiKey } from '../lib/aiKeyManager';
@@ -213,6 +213,99 @@ export class OpenAICompatibleAdapter implements AIProviderAdapter {
         return 'content_filter';
       default:
         return 'unknown';
+    }
+  }
+
+  /**
+   * Send a streaming chat request using the OpenAI-compatible API
+   */
+  async chatStream(request: ChatRequest, onChunk: StreamHandler): Promise<void> {
+    if (!this.client) {
+      throw new ConfigError(
+        `Adapter not configured for provider: ${this.providerId}`,
+        undefined,
+        this.providerId
+      );
+    }
+
+    try {
+      console.log(`[OpenAICompatibleAdapter] Sending streaming chat request to ${this.providerId}`);
+
+      const stream = await this.client.chat.completions.create({
+        model: request.model,
+        messages: request.messages.map(msg => ({
+          role: msg.role as 'system' | 'user' | 'assistant',
+          content: msg.content,
+        })),
+        temperature: request.temperature ?? 0.8,
+        max_tokens: request.maxTokens ?? 1000,
+        top_p: request.topP ?? 0.9,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content ?? '';
+        
+        onChunk({
+          delta,
+          done: chunk.choices[0]?.finish_reason !== null,
+          model: chunk.model,
+        });
+      }
+
+      console.log(`[OpenAICompatibleAdapter] Streaming completed for ${this.providerId}`);
+    } catch (error) {
+      console.error(`[OpenAICompatibleAdapter] Streaming error for ${this.providerId}:`, error);
+      
+      // Check for OpenAI SDK errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        const openaiError = error as { status?: number; message?: string };
+        const status = openaiError.status;
+        const isRetryable = status !== undefined && [429, 500, 502, 503, 504].includes(status);
+        
+        throw new APIError(
+          openaiError.message ?? 'API streaming error occurred',
+          status,
+          this.providerId,
+          isRetryable
+        );
+      }
+
+      // Check for specific error types
+      if (error instanceof OpenAI.AuthenticationError) {
+        throw new APIError(
+          'Authentication failed. Please check your API key.',
+          401,
+          this.providerId,
+          false
+        );
+      }
+
+      if (error instanceof OpenAI.RateLimitError) {
+        throw new APIError(
+          'Rate limit exceeded. Please try again later.',
+          429,
+          this.providerId,
+          true
+        );
+      }
+
+      if (error instanceof OpenAI.APIConnectionError) {
+        throw new APIError(
+          'Failed to connect to API. Please check your network.',
+          undefined,
+          this.providerId,
+          true
+        );
+      }
+
+      // Generic error
+      throw new APIError(
+        error instanceof Error ? error.message : 'Unknown streaming error occurred',
+        undefined,
+        this.providerId,
+        true
+      );
     }
   }
 

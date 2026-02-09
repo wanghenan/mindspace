@@ -93,12 +93,26 @@ export class ConfigError extends AdapterError {
 /**
  * Unsupported provider error
  */
-export class UnsupportedProviderError extends Error {
+export class UnsupportedProviderError extends AdapterError {
   constructor(providerId: AIProviderId | string) {
-    super(`Unsupported provider: ${providerId}`);
+    super(`Unsupported provider: ${providerId}`, 'UNSUPPORTED_PROVIDER', providerId as AIProviderId);
     this.name = 'UnsupportedProviderError';
   }
 }
+
+/**
+ * Stream chunk from chat completion (for future streaming support)
+ */
+export interface ChatChunk {
+  delta: string;
+  done: boolean;
+  model?: string;
+}
+
+/**
+ * Stream handler callback type (for future streaming support)
+ */
+export type StreamHandler = (chunk: ChatChunk) => void;
 
 /**
  * Adapter interface for AI provider implementations
@@ -121,6 +135,16 @@ export interface AIProviderAdapter {
    * @throws ConfigError - For configuration issues
    */
   chat(request: ChatRequest): Promise<ChatResponse>;
+
+  /**
+   * Send a chat request and stream the response (future Wave 2)
+   *
+   * @param request - The chat request containing messages and options
+   * @param onChunk - Callback for each chunk of the response
+   * @throws APIError - For API-related failures
+   * @throws ConfigError - For configuration issues
+   */
+  chatStream(request: ChatRequest, onChunk: StreamHandler): Promise<void>;
 
   /**
    * Check if the adapter is properly configured

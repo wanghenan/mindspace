@@ -5,9 +5,12 @@
  * This centralizes adapter creation and makes it easy to add new providers.
  */
 
-import { AIProviderAdapter, ConfigError, UnsupportedProviderError } from '../types/adapter';
-import type { AIProviderId } from '../types/aiProvider';
-import { OpenAICompatibleAdapter } from './OpenAICompatibleAdapter';
+import { AIProviderAdapter, ConfigError, UnsupportedProviderError } from '../types/adapter.js';
+import type { AIProviderId } from '../types/aiProvider.js';
+import { OpenAICompatibleAdapter } from './OpenAICompatibleAdapter.js';
+
+// Re-export UnsupportedProviderError for convenience
+export { UnsupportedProviderError } from '../types/adapter';
 
 /**
  * Providers that use OpenAI-compatible API format
@@ -16,7 +19,6 @@ const OPENAI_COMPATIBLE_PROVIDERS: AIProviderId[] = [
   'openai',
   'zhipu',
   'grok',
-  'gemini',
   'deepseek',
   'minimax',
   'alibaba',
@@ -30,7 +32,7 @@ const OPENAI_COMPATIBLE_PROVIDERS: AIProviderId[] = [
  */
 export class AdapterFactory {
   private static instance: AdapterFactory;
-  private adapterCache: Map<AIProviderId, AIProviderAdapter | null> = new Map();
+  private adapterCache: Map<AIProviderId, AIProviderAdapter | undefined> = new Map();
 
   private constructor() {
     console.log('[AdapterFactory] Initialized');
@@ -75,6 +77,11 @@ export class AdapterFactory {
    * Create an adapter for the specified provider
    */
   private createAdapter(providerId: AIProviderId): AIProviderAdapter {
+    // Handle custom adapters first
+    if (providerId === 'gemini') {
+      throw new UnsupportedProviderError('Gemini adapter not yet implemented - coming in Wave 2');
+    }
+
     // Check if it's an OpenAI-compatible provider
     if (OPENAI_COMPATIBLE_PROVIDERS.includes(providerId)) {
       return new OpenAICompatibleAdapter({
@@ -101,7 +108,11 @@ export class AdapterFactory {
    * Check if a provider is supported
    */
   isSupported(providerId: AIProviderId): boolean {
-    return OPENAI_COMPATIBLE_PROVIDERS.includes(providerId) || providerId === 'hunyuan';
+    return (
+      OPENAI_COMPATIBLE_PROVIDERS.includes(providerId) ||
+      providerId === 'gemini' ||
+      providerId === 'hunyuan'
+    );
   }
 
   /**
@@ -116,7 +127,7 @@ export class AdapterFactory {
    * Get all supported provider IDs
    */
   getSupportedProviders(): AIProviderId[] {
-    return [...OPENAI_COMPATIBLE_PROVIDERS, 'hunyuan'];
+    return [...OPENAI_COMPATIBLE_PROVIDERS, 'gemini', 'hunyuan'];
   }
 }
 
