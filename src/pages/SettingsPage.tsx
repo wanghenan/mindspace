@@ -3,8 +3,25 @@ import { motion } from 'framer-motion'
 import ProviderSelector from '../components/settings/ProviderSelector'
 import ApiKeySection from '../components/settings/ApiKeySection'
 import ModelSelector from '../components/settings/ModelSelector'
+import { useAIConfigStore } from '../store/aiConfigStore'
 
 const SettingsPage: React.FC = () => {
+  const selectedProvider = useAIConfigStore((state) => state.selectedProvider)
+  const selectedModel = useAIConfigStore((state) => state.selectedModel)
+  const isProviderConfigured = useAIConfigStore((state) => state.isProviderConfigured)
+  
+  const formatProviderName = (provider: string) => {
+    const names: Record<string, string> = {
+      'openai': 'OpenAI',
+      'zhipu': '智谱 AI',
+      'gemini': 'Google Gemini',
+      'deepseek': 'DeepSeek',
+      'alibaba': '阿里云',
+      'minimax': 'MiniMax',
+      'grok': 'Grok'
+    }
+    return names[provider] || provider
+  }
 
   return (
     <div
@@ -15,6 +32,79 @@ const SettingsPage: React.FC = () => {
       }}
     >
       <div className="max-w-4xl mx-auto">
+        {/* 当前配置状态 */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-8 p-4 rounded-xl border"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            borderColor: 'var(--border-color)'
+          }}
+        >
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div>
+              <h3 
+                className="text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                当前配置
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {/* 提供商标签 */}
+                <div 
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                  style={{
+                    backgroundColor: selectedProvider ? 'var(--accent)' : 'var(--bg-tertiary)',
+                    color: 'white'
+                  }}
+                >
+                  {selectedProvider ? formatProviderName(selectedProvider) : '未选择提供商'}
+                </div>
+                
+                {/* 模型标签 */}
+                {selectedModel && selectedProvider && (
+                  <div 
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                    style={{
+                      backgroundColor: 'var(--bg-tertiary)',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    模型: {selectedModel}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 配置状态 */}
+            <div className="flex items-center gap-2">
+              <div 
+                className={`w-2 h-2 rounded-full ${
+                  selectedProvider && isProviderConfigured(selectedProvider) 
+                    ? 'bg-green-500' 
+                    : 'bg-yellow-500'
+                }`}
+              />
+              <span 
+                className="text-sm"
+                style={{ 
+                  color: selectedProvider && isProviderConfigured(selectedProvider) 
+                    ? 'var(--text-success)' 
+                    : 'var(--text-warning)'
+                }}
+              >
+                {selectedProvider && isProviderConfigured(selectedProvider)
+                  ? '已配置 API 密钥'
+                  : selectedProvider
+                    ? '请配置 API 密钥'
+                    : '请选择提供商'}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -87,7 +177,7 @@ const SettingsPage: React.FC = () => {
               className="text-sm"
               style={{ color: 'var(--text-secondary)' }}
             >
-              为选中的提供商选择默认模型
+              选择适合您需求的模型
             </p>
           </div>
           <ModelSelector />
