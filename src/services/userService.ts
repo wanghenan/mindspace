@@ -16,7 +16,14 @@ export const userService = {
   // 检查是否已注册
   async isRegistered(): Promise<boolean> {
     const user = await this.getUser()
-    return !!user
+    const isRegistered = !!user
+
+    // 同步更新 localStorage 标识（确保新旧用户都能正常使用）
+    if (isRegistered) {
+      localStorage.setItem('mindspace_is_registered', 'true')
+    }
+
+    return isRegistered
   },
 
   // 获取当前用户
@@ -36,8 +43,13 @@ export const userService = {
       updatedAt: now,
       lastLoginAt: now
     }
-    
+
+    // 保存到 IndexedDB
     await set(USER_KEY, user)
+
+    // 设置登录标识到 localStorage（用于路由守卫检查）
+    localStorage.setItem('mindspace_is_registered', 'true')
+
     return user
   },
 
@@ -69,8 +81,12 @@ export const userService = {
 
   // 注销用户
   async logout(): Promise<void> {
+    // 清除 IndexedDB 中的用户数据
     await del(USER_KEY)
     await del(USER_STATS_KEY)
+
+    // 清除 localStorage 中的登录标识
+    localStorage.removeItem('mindspace_is_registered')
   },
 
   // 获取用户统计
