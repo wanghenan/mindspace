@@ -13,26 +13,18 @@ interface EmotionAnalysisResult {
   empathyMessage: string
 }
 
-// 获取AI Key的函数 - 优先本地存储，其次环境变量
-const getAIKey = (): { key: string; source: 'localStorage' | 'env' | 'none' } => {
-  // 优先检查用户本地存储
-  const localKey = localStorage.getItem('mindspace_dashscope_api_key')
-  if (localKey && localKey.trim()) {
-    console.log('[AI Service] AI Key 来源: 用户本地存储 (localStorage)')
-    console.log('[AI Service] Key 前缀:', localKey.substring(0, 8) + '...')
-    return { key: localKey.trim(), source: 'localStorage' }
-  }
-  
-  // 其次检查环境变量
+// 获取AI Key的函数 - SOS功能使用内置API Key（环境变量）
+const getAIKey = (): { key: string; source: 'env' | 'none' } => {
+  // SOS 情绪急救功能使用内置 API Key（环境变量）
   const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
   if (envKey) {
-    console.log('[AI Service] AI Key 来源: 环境变量 (VITE_DASHSCOPE_API_KEY)')
+    console.log('[AI Service] AI Key 来源: 内置平台 Key (VITE_DASHSCOPE_API_KEY)')
     console.log('[AI Service] Key 前缀:', envKey.substring(0, 8) + '...')
     return { key: envKey, source: 'env' }
   }
-  
-  // 没有配置任何Key
-  console.log('[AI Service] AI Key 来源: 无 (未配置)')
+
+  // 没有配置内置 Key
+  console.log('[AI Service] AI Key 来源: 无（未配置内置 Key）')
   return { key: '', source: 'none' }
 }
 
@@ -83,7 +75,7 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
   }
   
   console.log('🌐 使用API端点:', DASHSCOPE_API_URL)
-  console.log('🔑 AI Key 来源:', source === 'localStorage' ? '用户本地存储' : '环境变量')
+  console.log('🔑 AI Key 来源:', source === 'env' ? '内置平台 Key' : '未配置')
   
   try {
     // 构建用户输入描述
@@ -161,7 +153,7 @@ export async function analyzeEmotion(input: EmotionAnalysisInput): Promise<Emoti
     // 解析AI返回的JSON结果（OpenAI格式）
     const aiResponse = data.choices[0].message.content
     console.log('🤖 AI回复内容:', aiResponse)
-    console.log('✅ [AI Service] 使用阿里千问API成功完成情绪分析，来源:', source === 'localStorage' ? '用户本地存储' : '环境变量')
+    console.log('✅ [AI Service] 使用阿里千问API成功完成情绪分析，来源:', source === 'env' ? '内置平台 Key' : '未配置')
     
     let analysisResult: EmotionAnalysisResult
 

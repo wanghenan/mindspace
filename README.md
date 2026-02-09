@@ -28,10 +28,19 @@ npm install
 ```
 
 ### 配置环境变量
-复制 `.env.example` 为 `.env`，并填入你的 API Key：
+复制 `.env.example` 为 `.env`，并配置 API Key：
 ```bash
 cp .env.example .env
 ```
+
+**API Key 说明：**
+- **内置 API Key（VITE_DASHSCOPE_API_KEY）**: 用于 SOS 情绪急救功能，由平台提供
+- **用户配置 API Key**: 用户在「账户」页面自行配置，用于 AI 对话功能
+
+这样的设计确保：
+- SOS 急救功能开箱即用，无需用户配置
+- AI 对话功能由用户使用自己的 API 配额
+- 数据完全本地存储，保护用户隐私
 
 ### 启动开发服务器
 ```bash

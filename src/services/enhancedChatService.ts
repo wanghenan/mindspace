@@ -1,27 +1,25 @@
 import axios from 'axios'
 import type { Message } from '../types'
 
-// API配置 - 从用户本地存储或环境变量读取
+// API配置 - AI对话功能只使用用户配置的API Key
 const getDashScopeApiKey = (): string => {
-  // 优先使用用户本地存储的 API Key
+  // 检查用户是否已登录
+  const isRegistered = localStorage.getItem('mindspace_is_registered')
+  if (!isRegistered) {
+    console.log('[AI Key] 用户未登录，拒绝提供 API Key')
+    return ''
+  }
+
+  // AI对话功能只使用用户配置的 API Key
   const localKey = localStorage.getItem('mindspace_dashscope_api_key')
-  console.log('[AI Key] 检查本地存储:', localKey ? `已找到 (${localKey.substring(0, 8)}...)` : '未找到')
-  
+  console.log('[AI Key] 检查用户配置:', localKey ? `已配置 (${localKey.substring(0, 8)}...)` : '未配置')
+
   if (localKey && localKey.trim()) {
-    console.log('[AI Key] 使用来源: 用户本地存储')
+    console.log('[AI Key] 使用来源: 用户配置')
     return localKey.trim()
   }
-  
-  // 其次使用环境变量
-  const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-  console.log('[AI Key] 检查环境变量:', envKey ? `已找到 (${envKey.substring(0, 8)}...)` : '未找到')
-  
-  if (envKey) {
-    console.log('[AI Key] 使用来源: 环境变量')
-    return envKey
-  }
-  
-  console.log('[AI Key] 警告: 没有任何有效的 API Key!')
+
+  console.log('[AI Key] 警告: 用户未配置 API Key，AI对话功能无法使用')
   return ''
 }
 

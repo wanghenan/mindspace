@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 // Pages
 import HomePage from './pages/HomePage'
@@ -14,8 +15,7 @@ import SOSCardPage from './pages/SOSCardPage'
 import SOSCompletePage from './pages/SOSCompletePage'
 import SOSFeedbackPage from './pages/SOSFeedbackPage'
 import SOSCelebrationPage from './pages/SOSCelebrationPage'
-import PrivacySettingsPage from './pages/PrivacySettingsPage'
-import UserProfilePage from './pages/UserProfilePage'
+import AccountPage from './pages/AccountPage'
 
 function App() {
   const location = useLocation()
@@ -25,128 +25,145 @@ function App() {
       <Layout>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <HomePage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <HomePage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/chat" 
+          <Route
+            path="/chat"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ChatPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChatPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/insight" 
+          <Route
+            path="/insight"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <InsightPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <InsightPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          {/* SOS急救流程路由 */}
-          <Route 
-            path="/sos/emotion" 
+          {/* SOS急救流程路由 - 需要登录但不需要 API Key */}
+          <Route
+            path="/sos/emotion"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSEmotionPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSEmotionPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/sos/analysis" 
+          <Route
+            path="/sos/analysis"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSAnalysisPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSAnalysisPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/sos/card/:emotionType" 
+          <Route
+            path="/sos/card/:emotionType"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSCardPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSCardPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
           {/* 合并后的完成页面（庆祝+反馈） */}
-          <Route 
-            path="/sos/complete" 
+          <Route
+            path="/sos/complete"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSCompletePage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSCompletePage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/sos/celebration" 
+          <Route
+            path="/sos/celebration"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSCelebrationPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSCelebrationPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/sos/feedback" 
+          <Route
+            path="/sos/feedback"
             element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SOSFeedbackPage />
-              </motion.div>
-            } 
+              <ProtectedRoute>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SOSFeedbackPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
           />
-          {/* 隐私设置页面 */}
-          <Route 
-            path="/privacy" 
+          <Route
+            path="/account"
             element={
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -154,23 +171,9 @@ function App() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <PrivacySettingsPage />
+                <AccountPage />
               </motion.div>
-            } 
-          />
-          {/* 用户资料页面 */}
-          <Route 
-            path="/profile" 
-            element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <UserProfilePage />
-              </motion.div>
-            } 
+            }
           />
           {/* 其他路由将逐步添加 */}
         </Routes>

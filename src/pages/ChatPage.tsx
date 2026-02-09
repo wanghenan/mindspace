@@ -43,8 +43,17 @@ const ChatPage: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const hasInitializedSOS = useRef(false)
 
-  // 检查是否需要显示 API Key 配置
+  // 检查用户登录状态和 API Key 配置
   useEffect(() => {
+    // 首先检查是否已登录
+    const isRegistered = localStorage.getItem('mindspace_is_registered')
+    if (!isRegistered) {
+      // 未登录，不显示 API Key 配置弹窗，将在发送消息时提示登录
+      console.log('[ChatPage] 用户未登录')
+      return
+    }
+
+    // 已登录，检查 API Key 配置
     const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
     const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
     if (!storedKey && !envKey) {
@@ -183,10 +192,18 @@ const ChatPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return
 
-    // 发送前检查 API Key
+    // 首先检查登录状态
+    const isRegistered = localStorage.getItem('mindspace_is_registered')
+    if (!isRegistered) {
+      alert('请先登录后再使用 AI 对话功能')
+      window.location.href = '/account'
+      return
+    }
+
+    // 检查 API Key 配置
     const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
     const localKey = localStorage.getItem('mindspace_dashscope_api_key')
-    
+
     if (!envKey && !localKey) {
       console.log('[ChatPage] 没有配置 API Key，显示配置弹窗')
       setShowApiKeyModal(true)
