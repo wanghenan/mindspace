@@ -1048,7 +1048,7 @@ Scenario: [Descriptive name]
 
 ### Wave 3: UI 和集成
 
-- [ ] 8. 设置页面 UI
+- [x] 8. 设置页面 UI
 
   **What to do**:
   - [ ] 创建 `src/pages/SettingsPage.tsx`：设置页面主组件

@@ -5,32 +5,59 @@
  * Tests format conversion, API calls, streaming, and validation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GeminiAdapter } from '../GeminiAdapter';
 import { ChatRequest } from '../../types/adapter';
+import { AI_PROVIDERS } from '../../types/aiProvider';
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// Mock the aiKeyManager module
+vi.mock('../../lib/aiKeyManager', () => ({
+  getApiKey: vi.fn(),
+}));
+
+// Import the mocked module
+import { getApiKey } from '../../lib/aiKeyManager';
 
 describe('GeminiAdapter', () => {
   let adapter: GeminiAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    adapter = new GeminiAdapter();
-    mockFetch.mockClear();
+    vi.stubGlobal('fetch', vi.fn());
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+
+    // Default mock for getApiKey - no API key
+    vi.mocked(getApiKey).mockReturnValue({ source: 'none', key: '' });
   });
 
-  describe('Construction', () => {
-    it('should have correct provider ID', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('adapter initialization', () => {
+    it('should initialize with correct base URL', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'test-api-key' });
+      adapter = new GeminiAdapter();
       expect(adapter.providerId).toBe('gemini');
     });
 
-    it('should implement AIProviderAdapter interface', () => {
-      expect(typeof adapter.chat).toBe('function');
-      expect(typeof adapter.chatStream).toBe('function');
-      expect(typeof adapter.isConfigured).toBe('function');
-      expect(typeof adapter.validateApiKey).toBe('function');
+    it('should load API key from key manager on construction', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'test-api-key' });
+      adapter = new GeminiAdapter();
+      expect(getApiKey).toHaveBeenCalledWith('gemini');
+    });
+
+    it('should be configured when API key is set', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'test-api-key' });
+      adapter = new GeminiAdapter();
+      expect(adapter.isConfigured()).toBe(true);
+    });
+
+    it('should not be configured when API key is missing', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'none', key: '' });
+      adapter = new GeminiAdapter();
+      expect(adapter.isConfigured()).toBe(false);
     });
   });
 
@@ -170,109 +197,213 @@ describe('GeminiAdapter', () => {
     });
   });
 
-  describe('chat() Method', () => {
-    it('should throw ConfigError when not configured', async () => {
-      const request: ChatRequest = {
-        messages: [{ role: 'user', content: 'Hello' }],
-        model: 'gemini-3-pro',
-        provider: 'gemini'
-      };
-
-      await expect(adapter.chat(request)).rejects.toThrow('Adapter not configured');
+  describe('adapter.chat()', () => {
+    beforeEach(() => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'test-api-key' });
+      adapter = new GeminiAdapter();
     });
 
-    it('should make API call with correct format when configured', async () => {
-      // Mock localStorage to return API key
-      const mockGetItem = vi.fn();
-      mockGetItem.mockReturnValue('test-api-key');
-      Object.defineProperty(window, 'localStorage', {
-        value: { getItem: mockGetItem },
-        writable: true
-      });
-
-      // Re-create adapter to pick up localStorage
-      adapter = new GeminiAdapter();
-
-      // Mock successful API response
-      mockFetch.mockResolvedValueOnce({
+    it('should make correct API call using fetch', async () => {
+      const mockResponse = {
         ok: true,
+        status: 200,
         json: async () => ({
           candidates: [
             {
-              content: { parts: [{ text: 'Test response' }] },
-              finishReason: 'STOP'
-            }
+              content: {
+                parts: [{ text: 'Hello, how can I help you?' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
           ],
-          usageMetadata: {
-            promptTokenCount: 5,
-            candidatesTokenCount: 3,
-            totalTokenCount: 8
-          }
-        })
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const request: ChatRequest = {
+        messages: [{ role: 'user', content: 'Hi' }],
+        model: 'gemini-pro',
+        provider: 'gemini',
+        temperature: 0.7,
+        maxTokens: 100,
+        topP: 0.9,
+      };
+
+      await adapter.chat(request);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, options] = mockFetch.mock.calls[0];
+
+      // Verify URL contains correct endpoint
+      expect(url).toContain('/v1beta/models/gemini-pro:generateContent');
+      expect(url).toContain('key=test-api-key');
+
+      // Verify request options
+      expect(options.method).toBe('POST');
+      expect(options.headers['Content-Type']).toBe('application/json');
+
+      const body = JSON.parse(options.body as string);
+      expect(body.contents).toHaveLength(1);
+      expect(body.contents[0].role).toBe('user');
+      expect(body.contents[0].parts[0].text).toBe('Hi');
+      expect(body.generationConfig.temperature).toBe(0.7);
+      expect(body.generationConfig.maxOutputTokens).toBe(100);
+      expect(body.generationConfig.topP).toBe(0.9);
+    });
+
+    it('should throw ConfigError when API key is not set', async () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'none', key: '' });
+      adapter = new GeminiAdapter();
+
+      const request: ChatRequest = {
+        messages: [{ role: 'user', content: 'Hi' }],
+        model: 'gemini-pro',
+        provider: 'gemini',
+      };
+
+      await expect(adapter.chat(request)).rejects.toThrow('Adapter not configured for provider: gemini');
+    });
+
+    it('should handle API errors (401, 429, 500)', async () => {
+      // Test 401 Unauthorized
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
       });
 
       const request: ChatRequest = {
-        messages: [{ role: 'user', content: 'Hello' }],
-        model: 'gemini-3-pro',
-        provider: 'gemini'
+        messages: [{ role: 'user', content: 'Hi' }],
+        model: 'gemini-pro',
+        provider: 'gemini',
+      };
+
+      await expect(adapter.chat(request)).rejects.toThrow('Gemini API error: Unauthorized');
+
+      // Test 429 Too Many Requests
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+      });
+
+      await expect(adapter.chat(request)).rejects.toThrow('Gemini API error: Too Many Requests');
+
+      // Test 500 Internal Server Error
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      await expect(adapter.chat(request)).rejects.toThrow('Gemini API error: Internal Server Error');
+    });
+
+    it('should convert OpenAI messages to Gemini format correctly', async () => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'I understand how you feel.' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const request: ChatRequest = {
+        messages: [
+          { role: 'system', content: 'You are a supportive assistant.' },
+          { role: 'user', content: 'I am feeling anxious' },
+          { role: 'assistant', content: 'I hear you.' },
+        ],
+        model: 'gemini-pro',
+        provider: 'gemini',
+      };
+
+      await adapter.chat(request);
+
+      const [, options] = mockFetch.mock.calls[0];
+      const body = JSON.parse(options.body as string);
+
+      // System message should be prepended to first user message
+      expect(body.contents).toHaveLength(2);
+      expect(body.contents[0].role).toBe('user');
+      expect(body.contents[0].parts[0].text).toContain('You are a supportive assistant.');
+      expect(body.contents[0].parts[0].text).toContain('I am feeling anxious');
+      expect(body.contents[1].role).toBe('model');
+      expect(body.contents[1].parts[0].text).toBe('I hear you.');
+    });
+
+    it('should convert Gemini response to OpenAI format correctly', async () => {
+      const mockResponse = {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Take a deep breath.' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const request: ChatRequest = {
+        messages: [{ role: 'user', content: 'Help me relax' }],
+        model: 'gemini-pro',
+        provider: 'gemini',
       };
 
       const response = await adapter.chat(request);
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(response.content).toBe('Test response');
+      expect(response.content).toBe('Take a deep breath.');
+      expect(response.finishReason).toBe('stop');
       expect(response.provider).toBe('gemini');
-    });
-
-    it('should handle API errors with APIError', async () => {
-      const mockGetItem = vi.fn();
-      mockGetItem.mockReturnValue('test-api-key');
-      Object.defineProperty(window, 'localStorage', {
-        value: { getItem: mockGetItem },
-        writable: true
-      });
-
-      adapter = new GeminiAdapter();
-
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        statusText: 'Unauthorized'
-      });
-
-      const request: ChatRequest = {
-        messages: [{ role: 'user', content: 'Hello' }],
-        model: 'gemini-3-pro',
-        provider: 'gemini'
-      };
-
-      await expect(adapter.chat(request)).rejects.toThrow();
+      expect(response.model).toBe('gemini-pro');
+      expect(response.usage?.promptTokens).toBe(10);
+      expect(response.usage?.completionTokens).toBe(5);
+      expect(response.usage?.totalTokens).toBe(15);
     });
   });
 
   describe('chatStream() Method', () => {
     it('should handle SSE streaming response', async () => {
-      const mockGetItem = vi.fn();
-      mockGetItem.mockReturnValue('test-api-key');
-      Object.defineProperty(window, 'localStorage', {
-        value: { getItem: mockGetItem },
-        writable: true
-      });
-
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'test-api-key' });
       adapter = new GeminiAdapter();
 
-      // Mock SSE stream
-      const streamChunks = [
-        'data: {"candidates": [{"content": {"parts": [{"text": "Hello"}]}}]}',
-        'data: {"candidates": [{"content": {"parts": [{"text": " world"}]}}]}',
-        'data: [DONE]'
+      // Mock SSE stream - each chunk should be processed separately
+      const encoder = new TextEncoder();
+      let chunkIndex = 0;
+      const streamData = [
+        encoder.encode('data: {"candidates": [{"content": {"parts": [{"text": "Hello"}]}}]}\n'),
+        encoder.encode('data: {"candidates": [{"content": {"parts": [{"text": " world"}]}}]}\n'),
+        encoder.encode('data: [DONE]\n')
       ];
 
       const mockReader = {
         read: async () => {
-          const chunk = streamChunks.shift();
-          if (chunk) {
-            return { done: false, value: new TextEncoder().encode(chunk) };
+          if (chunkIndex < streamData.length) {
+            return { done: false, value: streamData[chunkIndex++] };
           }
           return { done: true };
         }
@@ -285,7 +416,9 @@ describe('GeminiAdapter', () => {
 
       const chunks: string[] = [];
       const onChunk = (chunk: any) => {
-        chunks.push(chunk.delta);
+        if (!chunk.done) {
+          chunks.push(chunk.delta);
+        }
       };
 
       const request: ChatRequest = {
@@ -301,70 +434,74 @@ describe('GeminiAdapter', () => {
     });
   });
 
-  describe('validateApiKey() Method', () => {
-    it('should return false for empty API key', async () => {
-      const result = await adapter.validateApiKey('');
-      expect(result).toBe(false);
+  describe('adapter.validateApiKey()', () => {
+    beforeEach(() => {
+      adapter = new GeminiAdapter();
     });
 
-    it('should return false for invalid API key', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401
-      });
-
-      const result = await adapter.validateApiKey('invalid-key');
-      expect(result).toBe(false);
-    });
-
-    it('should return true for valid API key', async () => {
-      mockFetch.mockResolvedValueOnce({
+    it('should validate API key via /models endpoint', async () => {
+      mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ models: [] })
+        status: 200,
+        json: async () => ({ models: [] }),
       });
 
-      const result = await adapter.validateApiKey('valid-key');
-      expect(result).toBe(true);
-    });
-
-    it('should call models endpoint for validation', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ models: [] })
-      });
-
-      await adapter.validateApiKey('test-key');
+      const isValid = await adapter.validateApiKey('test-api-key');
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch.mock.calls[0][0]).toContain('models');
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toContain('/v1beta/models');
+      expect(url).toContain('key=test-api-key');
+      expect(isValid).toBe(true);
+    });
+
+    it('should return false for empty API key', async () => {
+      const isValid = await adapter.validateApiKey('');
+      expect(isValid).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should return false for whitespace-only API key', async () => {
+      const isValid = await adapter.validateApiKey('   ');
+      expect(isValid).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should return false when API returns error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+      });
+
+      const isValid = await adapter.validateApiKey('invalid-key');
+      expect(isValid).toBe(false);
+    });
+
+    it('should return false on network error', async () => {
+      mockFetch.mockRejectedValue(new Error('Network error'));
+
+      const isValid = await adapter.validateApiKey('test-key');
+      expect(isValid).toBe(false);
     });
   });
 
-  describe('isConfigured() Method', () => {
-    it('should return false when no API key in localStorage', () => {
-      const mockGetItem = vi.fn();
-      mockGetItem.mockReturnValue(null);
-      Object.defineProperty(window, 'localStorage', {
-        value: { getItem: mockGetItem },
-        writable: true
-      });
-
+  describe('adapter.isConfigured()', () => {
+    it('should return true when API key is set', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'env', key: 'valid-key' });
       adapter = new GeminiAdapter();
+      expect(adapter.isConfigured()).toBe(true);
+    });
 
+    it('should return false when API key is empty', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'none', key: '' });
+      adapter = new GeminiAdapter();
       expect(adapter.isConfigured()).toBe(false);
     });
 
-    it('should return true when API key exists in localStorage', () => {
-      const mockGetItem = vi.fn();
-      mockGetItem.mockReturnValue('test-api-key');
-      Object.defineProperty(window, 'localStorage', {
-        value: { getItem: mockGetItem },
-        writable: true
-      });
-
+    it('should return false when key source is none', () => {
+      vi.mocked(getApiKey).mockReturnValue({ source: 'none', key: undefined });
       adapter = new GeminiAdapter();
-
-      expect(adapter.isConfigured()).toBe(true);
+      expect(adapter.isConfigured()).toBe(false);
     });
   });
 });

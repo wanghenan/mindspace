@@ -95,6 +95,6 @@ export interface ApiKeySource {
 }
 
 /**
- * Default provider (no API key required)
+ * Default provider (requires API key - more practical for users)
  */
-export const DEFAULT_PROVIDER: AIProviderId = 'hunyuan';
+export const DEFAULT_PROVIDER: AIProviderId = 'openai';
