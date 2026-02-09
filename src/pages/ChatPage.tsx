@@ -53,10 +53,10 @@ const ChatPage: React.FC = () => {
       return
     }
 
-    // 已登录，检查 API Key 配置
+    // 已登录，检查用户是否配置了 API Key
     const storedKey = localStorage.getItem('mindspace_dashscope_api_key')
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
-    if (!storedKey && !envKey) {
+    if (!storedKey) {
+      // 未配置 API Key，显示配置弹窗
       setShowApiKeyModal(true)
     }
     if (storedKey) {
@@ -200,12 +200,11 @@ const ChatPage: React.FC = () => {
       return
     }
 
-    // 检查 API Key 配置
-    const envKey = import.meta.env.VITE_DASHSCOPE_API_KEY
+    // 检查用户是否配置了 API Key（AI 对话功能必须配置）
     const localKey = localStorage.getItem('mindspace_dashscope_api_key')
 
-    if (!envKey && !localKey) {
-      console.log('[ChatPage] 没有配置 API Key，显示配置弹窗')
+    if (!localKey) {
+      console.log('[ChatPage] 用户未配置 API Key，显示配置弹窗')
       setShowApiKeyModal(true)
       return
     }
