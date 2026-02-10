@@ -48,10 +48,137 @@ npm run dev
 ```
 访问 http://localhost:5173
 
+> **端口配置**: 默认使用 3000 端口。如端口被占用，启动会报错（已配置 `strictPort`）。
+
+### 本地测试
+- 默认访问地址: http://localhost:3000
+- 配置页面路径: `/settings`
+
 ### 构建生产版本
 ```bash
 npm run build
 ```
+
+## 多模型 AI 服务配置
+
+MindSpace 支持多家 AI 服务提供商，您可以根据需要选择不同的模型。
+
+### 访问 AI 设置页面
+
+- **页面路径**: `/settings`
+- **导航方式**: 通过侧边栏菜单或主页导航进入设置页面
+
+### 配置步骤
+
+1. **打开设置页面**
+   - 点击侧边栏的设置图标
+   - 或直接访问 `/settings` 路径
+
+2. **选择 AI 服务提供商**
+   - 在设置页面选择您想使用的 AI 提供商
+   - 支持的提供商见下方列表
+
+3. **配置 API Key**
+   - 获取对应提供商的 API Key（见下方链接）
+   - 在设置页面输入您的 API Key
+   - API Key 将安全保存在浏览器本地存储中
+
+4. **选择模型**
+   - 配置 API Key 后，可选择该提供商下的不同模型
+   - 每个提供商提供多个模型选项，具有不同的性能特点
+
+5. **保存配置**
+   - 配置完成自动保存，即可开始使用 AI 对话功能
+
+### 支持的 AI 提供商
+
+MindSpace 当前支持 7 家主流 AI 服务提供商：
+
+#### 1. OpenAI
+- **官网**: https://platform.openai.com
+- **支持模型**:
+  - `gpt-4o` - GPT-4o（推荐，综合性能最佳）
+  - `gpt-4o-mini` - GPT-4o Mini（轻量级，响应更快）
+- **特点**: 上下文长度 128K，支持流式输出
+
+#### 2. Zhipu AI（智谱AI）
+- **官网**: https://open.bigmodel.cn
+- **支持模型**:
+  - `glm-4.7` - GLM-4.7（最新旗舰模型）
+  - `glm-4.7-flash` - GLM-4.7 Flash（快速响应版本）
+  - `glm-4.6` - GLM-4.6（稳定版本）
+- **特点**: 上下文长度 200K，中文优化，支持流式输出
+
+#### 3. Google Gemini
+- **官网**: https://ai.google.dev
+- **支持模型**:
+  - `gemini-3-pro` - Gemini 3 Pro（深度推理）
+  - `gemini-3-flash` - Gemini 3 Flash（高性能，上下文高达 1M）
+- **特点**: 超长上下文支持，多模态能力强
+
+#### 4. DeepSeek
+- **官网**: https://platform.deepseek.com
+- **支持模型**:
+  - `deepseek-chat` - DeepSeek Chat（对话优化）
+  - `deepseek-reasoner` - DeepSeek Reasoner（推理增强）
+- **特点**: 上下文长度 128K，性价比高，支持流式输出
+
+#### 5. Alibaba Cloud（阿里云）
+- **官网**: https://dashscope.aliyun.com
+- **支持模型**:
+  - `qwen3-max` - Qwen3 Max（最强性能）
+  - `qwen-plus` - Qwen Plus（均衡选择）
+  - `qwen-flash` - Qwen Flash（极速响应）
+- **特点**: 阿里云生态集成，中文理解优秀
+
+#### 6. MiniMax
+- **官网**: https://www.minimax.chat
+- **支持模型**:
+  - `MiniMax-M2.1` - MiniMax M2.1（标准版本）
+  - `MiniMax-M2.1-lightning` - MiniMax M2.1 Lightning（极速版本）
+- **特点**: 上下文长度 200K，对话自然流畅
+
+#### 7. Grok（xAI）
+- **官网**: https://x.ai
+- **支持模型**:
+  - `grok-4` - Grok-4（标准版本）
+  - `grok-4-fast` - Grok-4 Fast（快速版本）
+- **特点**: 上下文长度 128K，实时信息能力强
+
+### 模型选择建议
+
+- **追求最佳质量**: OpenAI GPT-4o、Zhipu GLM-4.7
+- **追求性价比**: DeepSeek 系列、Alibaba Qwen 系列
+- **追求速度**: 各家的 Flash/Mini/Lightning 版本
+- **中文优化**: Zhipu GLM、Alibaba Qwen
+- **超长上下文**: Gemini 3 Flash（支持 1M tokens）
+
+### 常见问题
+
+#### API Key 无效
+- 检查 API Key 是否复制完整（注意前后空格）
+- 确认 API Key 已在对应平台激活
+- 验证 API Key 权限是否包含模型调用权限
+- 更新 API Key 后请刷新页面
+
+#### 模型调用失败
+- 确认选择的模型名称与提供商当前支持的模型一致
+- 部分模型可能需要单独开通权限
+- 检查账户余额是否充足
+- 查看浏览器控制台是否有详细错误信息
+
+#### 网络连接问题
+- 检查网络连接是否正常
+- 部分提供商可能存在网络访问限制
+- 开发环境下如遇到 CORS 问题，可能需要配置代理服务器
+
+#### 无响应或响应慢
+- 确认 API 账户余额充足
+- 尝试切换到其他模型或提供商
+- 检查请求格式是否正确
+- 查看是否触达提供商的速率限制
+
+> **注意**: 所有 API Key 仅存储在您的浏览器本地，不会上传到任何服务器。请妥善保管您的 API Key，不要在公共设备上保存。
 
 ## 项目结构
 

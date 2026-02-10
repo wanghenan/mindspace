@@ -92,6 +92,25 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-neutral-800 rotate-45"></div>
             </div>
           </div>
+          
+          {/* 设置 */}
+          <div className="relative group">
+            <button 
+              onClick={() => navigate('/settings')}
+              className={`flex items-center justify-center w-full px-4 py-3 rounded-lg transition-all
+                ${location.pathname === '/settings' 
+                  ? 'bg-primary-100 text-primary-700' 
+                  : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              aria-label="AI设置"
+            >
+              <span className="text-lg font-bold">⚙️</span>
+            </button>
+            <div className="absolute left-full ml-2 px-2 py-1 bg-neutral-800 text-white text-sm rounded-md whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              AI设置
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-neutral-800 rotate-45"></div>
+            </div>
+          </div>
         </div>
       </nav>
 

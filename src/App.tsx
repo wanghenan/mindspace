@@ -15,6 +15,8 @@ import SOSCardPage from './pages/SOSCardPage'
 import SOSCompletePage from './pages/SOSCompletePage'
 import SOSFeedbackPage from './pages/SOSFeedbackPage'
 import SOSCelebrationPage from './pages/SOSCelebrationPage'
+import UserProfilePage from './pages/UserProfilePage'
+import SettingsPage from './pages/SettingsPage'
 import AccountPage from './pages/AccountPage'
 
 function App() {
@@ -172,6 +174,34 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <AccountPage />
+              </motion.div>
+            }
+          />
+          {/* 用户资料页面 */}
+          <Route
+            path="/profile"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <UserProfilePage />
+              </motion.div>
+            }
+          />
+          {/* AI 设置页面 */}
+          <Route
+            path="/settings"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SettingsPage />
               </motion.div>
             }
           />

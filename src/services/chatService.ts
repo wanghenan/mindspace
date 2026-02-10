@@ -1,16 +1,20 @@
-// MindSpace AI对话服务
-interface ChatMessage {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-}
+// MindSpace AI对话服务 - 使用适配器模式重构
+
+import type { ChatMessage, ChatRequest } from '../types/adapter';
+import { ChatServiceError } from '../types/errors';
+import { withRetry, RetryPresets } from '../utils/retry';
+import { chatLogger, logChatExchange, logRetryAttempt, logAPIError } from '../lib/logger';
+import { adapterFactory } from '../adapters/AdapterFactory';
+import { useAIConfigStore } from '../store/aiConfigStore';
+import { isProviderConfigured } from '../lib/aiKeyManager';
+import type { AIProviderId } from '../types/aiProvider';
 
 interface ChatResponse {
-  content: string
-  needsSOS?: boolean
-  crisis?: boolean
+  content: string;
+  needsSOS?: boolean;
+  crisis?: boolean;
 }
 
-// MindSpace核心系统提示词
 const MINDSPACE_SYSTEM_PROMPT = `你叫 MindSpace，是一个基于 CBT（认知行为疗法）和人本主义心理学的 AI 情绪急救伙伴。
 你的服务对象是高压都市女性（尤其是高敏感人群 HSP）。她们聪明、专业，但经常感到焦虑、内耗或孤独。
 你的目标不是"说教"或"治愈"，而是提供安全的陪伴（Holding Space），帮助她们在情绪崩溃时找回平静，在日常中建立觉察。
@@ -39,73 +43,114 @@ const MINDSPACE_SYSTEM_PROMPT = `你叫 MindSpace，是一个基于 CBT（认知
 - 每次回复不超过50字
 - 语气温暖、自然，像朋友聊天
 - 多用短句，避免长段落
-- 适当使用emoji增加温暖感`
+- 适当使用emoji增加温暖感`;
 
-// 阿里千问API配置
-const DASHSCOPE_API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY
-const DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const CRISIS_KEYWORDS = [
+  '喘不上气', '手在抖', '心跳好快', '要疯了',
+  '不想活了', '想结束', '想死'
+];
+
+function detectCrisis(message: string): boolean {
+  return CRISIS_KEYWORDS.some(keyword => message.includes(keyword));
+}
+
+function getAdapter() {
+  const state = useAIConfigStore.getState();
+  const provider = state.selectedProvider;
+
+  if (!isProviderConfigured(provider)) {
+    throw ChatServiceError.missingApiKey(provider);
+  }
+
+  return adapterFactory.getAdapter(provider);
+}
+
+function buildChatRequest(
+  messages: ChatMessage[],
+  userMessage: string,
+  provider: AIProviderId,
+  model: string
+): ChatRequest {
+  const fullMessages: ChatMessage[] = [
+    { role: 'system', content: MINDSPACE_SYSTEM_PROMPT },
+    ...messages.slice(-10),
+    { role: 'user', content: userMessage }
+  ];
+
+  return {
+    messages: fullMessages,
+    model,
+    provider,
+    temperature: 0.8,
+    maxTokens: 150,
+    topP: 0.9
+  };
+}
+
+async function executeChatRequest(
+  request: ChatRequest,
+  provider: AIProviderId
+): Promise<string> {
+  const adapter = getAdapter();
+  const model = useAIConfigStore.getState().getCurrentModel();
+
+  logChatExchange('sent', request.messages.reduce((acc, m) => acc + m.content.length, 0), provider, model);
+
+  try {
+    const response = await withRetry(
+      () => adapter.chat({ ...request, model }),
+      {
+        ...RetryPresets.serverError,
+        isRetryable: (error: Error) => {
+          if (error instanceof ChatServiceError) {
+            return error.isRetryable;
+          }
+          return error.name === 'APIError' || error.message?.includes('429') || error.message?.includes('5');
+        },
+        onRetry: (attempt, error) => {
+          logRetryAttempt(attempt, 3, error.message);
+        }
+      }
+    );
+
+    logChatExchange('received', response.content.length, provider, model);
+    return response.content;
+  } catch (error) {
+    if (error instanceof ChatServiceError) {
+      logAPIError(provider, error.statusCode || 0, error.message);
+      throw error;
+    }
+
+    const chatError = ChatServiceError.serverError(provider, undefined, error instanceof Error ? error.message : 'Unknown error');
+    logAPIError(provider, 0, chatError.message);
+    throw chatError;
+  }
+}
 
 export async function sendChatMessage(
   messages: ChatMessage[],
   userMessage: string
 ): Promise<ChatResponse> {
+  const hasCrisis = detectCrisis(userMessage);
+  const state = useAIConfigStore.getState();
+  const provider = state.selectedProvider;
+
+  chatLogger.info(`Processing message from user (${userMessage.length} chars) via ${provider}`);
+
   try {
-    // 构建完整的对话历史
-    const fullMessages: ChatMessage[] = [
-      { role: 'system', content: MINDSPACE_SYSTEM_PROMPT },
-      ...messages.slice(-10), // 只保留最近10条消息以控制token数量
-      { role: 'user', content: userMessage }
-    ]
-
-    // 危机识别
-    const crisisKeywords = ['喘不上气', '手在抖', '心跳好快', '要疯了', '不想活了', '想结束', '想死']
-    const hasCrisisKeywords = crisisKeywords.some(keyword => userMessage.includes(keyword))
-
-    if (!DASHSCOPE_API_KEY) {
-      console.warn('API密钥未配置，使用本地回复逻辑')
-      return generateLocalResponse(userMessage, hasCrisisKeywords)
-    }
-
-    // 调用阿里千问API（使用OpenAI兼容格式）
-    const response = await fetch(DASHSCOPE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'qwen-plus',
-        messages: fullMessages.map(msg => ({
-          role: msg.role === 'assistant' ? 'assistant' : msg.role,
-          content: msg.content
-        })),
-        temperature: 0.8,
-        max_tokens: 150,
-        top_p: 0.9
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`)
-    }
-
-    const data = await response.json()
-    
-    if (data.error) {
-      throw new Error(`API错误: ${data.error.message}`)
-    }
-
-    const aiContent = data.choices[0].message.content
+    const model = state.getCurrentModel();
+    const request = buildChatRequest(messages, userMessage, provider, model);
+    const content = await executeChatRequest(request, provider);
 
     return {
-      content: aiContent,
-      needsSOS: hasCrisisKeywords,
-      crisis: hasCrisisKeywords
-    }
-
+      content,
+      needsSOS: hasCrisis,
+      crisis: hasCrisis
+    };
   } catch (error) {
-    console.error('AI对话失败:', error)
-    return generateLocalResponse(userMessage, false)
+    chatLogger.error(`Chat failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+    return generateLocalResponse(userMessage, hasCrisis);
   }
 }
 
