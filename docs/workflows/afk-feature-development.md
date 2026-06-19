@@ -213,6 +213,106 @@ PRD 明确"不测什么"（prompt 措辞、AI 返回、内部 state），这比"
 
 ---
 
+## 各阶段技能使用手册（对齐 mattpocock/skills 1.0.0）
+
+> 下面按执行阶段给出**具体怎么调**：调什么、喂什么、产出什么、其中嵌入了哪些 model-invoked 技能。命令名前的 `/` 表示它是 **user-invoked**（人键入触发）；无 `/` 标注的是 **model-invoked**（任务匹配时模型自动触达，人也可显式调）。铁律：user-invoked 不调另一个 user-invoked。
+
+### 阶段 1：逼问出共识
+
+| | |
+|---|---|
+| **调** | `/grill-with-docs`（user-invoked）|
+| **内部组合** | 跑 `/grilling`（model-invoked，可复用的访谈循环）+ `/domain-modeling`（model-invoked，主动建领域模型）|
+| **喂** | 模糊的功能想法 + 代码库 |
+| **做法** | `/grilling` 纪律：一次只问一个问题，每个问题给**推荐答案**；能从代码答的就探索代码不问人；沿决策树逐分支解决依赖。`/domain-modeling` 纪律在访谈中持续生效：术语一冲突立刻指出（"glossary 定义为 X，但你像在说 Y"）；术语一定型**立刻写进 CONTEXT.md（不批量）**；用具体边界场景逼问关系；代码与口头描述矛盾时当场点破。 |
+| **ADR 门槛** | `/domain-modeling` 的 ADR 只在三条**全满足**时才提：① 难逆转 ② 后人会困惑 ③ 真实权衡。缺一条就跳过。 |
+| **产出** | `CONTEXT.md`（纯术语表，零实现细节）+ `docs/adr/*.md` |
+
+### 阶段 2：配置技能基建（每仓库一次）
+
+| | |
+|---|---|
+| **调** | `/setup-matt-pocock-skills`（user-invoked，每仓库只一次） |
+| **喂** | 空仓库（或尚未配置的仓库）|
+| **做** | 探索现有状态（`git remote`、`AGENTS.md`/`CLAUDE.md`、`CONTEXT.md`、`docs/adr/`），然后**一次问一个**三个决策：① Issue tracker（GitHub/GitLab/本地 markdown/其他）② Triage label 词汇（5 个标准角色，可改名）③ Domain doc 布局（single-context / multi-context）。每个决策先给一句话 explainer 再给选项和默认。 |
+| **产出** | `AGENTS.md`/`CLAUDE.md` 里的 `## Agent skills` 块 + `docs/agents/{issue-tracker,triage-labels,domain}.md` + issue tracker 的 5 个 triage label |
+| **注意** | 永远编辑已存在的那一个（`CLAUDE.md` 在就不新建 `AGENTS.md`）；已有 `## Agent skills` 块就原地更新，不追加重复块 |
+
+### 阶段 3：综合成 PRD
+
+| | |
+|---|---|
+| **调** | `/to-prd`（user-invoked）|
+| **喂** | 阶段 1 的共识 + 代码理解 |
+| **铁律** | **不再访谈，只综合。** 这是该技能的核心约束——别在 PRD 阶段又开提问。 |
+| **做** | ① 探索代码（用 CONTEXT.md 词汇、尊重相关 ADR）② **先和用户确认测试接缝**——优先复用既有接缝、用能到的最高接缝、理想接缝数是 1；新接缝尽量提在最高点 ③ 套模板写 PRD ④ 发布到 issue tracker，打 `ready-for-agent` |
+| **PRD 模板** | Problem Statement（用户视角）/ Solution（用户视角 + 引用 ADR）/ User Stories（大量、编号、As-a·I-want·So-that）/ Implementation Decisions（模块·接口·schema·契约，**不写具体文件路径**；原型产出的状态机/reducer/schema 若比散文更精确，可内联并注明来自原型）/ Testing Decisions（测试哲学 + 接缝分层）/ Out of Scope（明确不做 + 理由）/ Further Notes |
+| **产出** | PRD issue（已打 `ready-for-agent`） |
+
+### 阶段 4：拆成垂直切片
+
+| | |
+|---|---|
+| **调** | `/to-issues`（user-invoked）|
+| **喂** | PRD（可直接喂 issue 号/URL/路径，技能会从 tracker 拉取全文 + 评论）|
+| **做** | ① 用已有上下文工作 ② 探索代码找"预重构"机会（"先把改动变容易，再做容易的改动"）③ 起草**垂直切片（tracer bullet）**：每个贯穿所有集成层（schema/API/UI/tests）、可独立演示验收、预重构先行 ④ 把拆分作为编号清单呈给用户：每片给 Title / Blocked by / 覆盖的 user stories；问粒度、依赖、要不要合并或再拆，**迭代到用户批准** ⑤ 按依赖顺序发布（阻塞者先，才能在 "Blocked by" 填真实编号），发布即打 `ready-for-agent` |
+| **issue 模板** | Parent（若来源是现有 issue）/ What to build（端到端行为，不写文件路径；原型 snippet 同 PRD 规则）/ Acceptance criteria（勾选项）/ Blocked by（真实编号 or "None - can start immediately"）|
+| **产出** | N 个 `ready-for-agent` 切片 issue + 依赖图 |
+| **注意** | 不关闭/修改父 issue |
+
+### ↓↓↓ 分界线：`ready-for-agent`。此后每个切片独立、清空上下文、开新 session ↓↓↓
+
+### 阶段 5：实现（每切片一个新 session）
+
+| | |
+|---|---|
+| **调** | `/implement`（user-invoked）|
+| **喂** | PRD + **单个**切片 issue（不要喂全部，避免上下文污染）|
+| **内部组合** | 用 `/tdd`（model-invoked）在预先约定的接缝做 TDD |
+| **`/tdd` 纪律** | 探索时读 `CONTEXT.md` 让测试名/接口词汇对齐领域语言、尊重 ADR。**反模式：先写所有测试再写所有实现（水平切片）**——会产出测"想象的形状"而非"真实行为"的脆弱测试。正确做法：**一次一个测试一个实现（垂直 tracer bullet）**——`RED→GREEN`（1 测 1 实现）循环，每个测试回应上一轮学到的东西。Planning 阶段先和用户确认接口改动 + 哪些行为要测（不能测一切，聚焦关键路径）；refactor 只在 GREEN 后做，**绝不 RED 时重构**。 |
+| **`/implement` 自己的纪律** | 经常跑类型检查、常跑单测试文件、收尾跑一次全量测试；做完用 `/review` 复审；提交到当前分支 |
+| **并行（本 harness 现实约束）** | 见上文阶段 5 的专门章节。本 harness 子代理只有只读 `Explore`，写任务不可委派——**串行执行**或**真·多 checkout 并行**；文件归属写进 issue body |
+| **产出** | 通过测试的代码 + commit |
+
+### 阶段 6：验证 + 提交 + 关闭
+
+| | |
+|---|---|
+| **调** | `/review`（user-invoked，被 `/implement` 末尾调用；也可独立调）|
+| **做** | 对刚完成的切片做代码复审（fail-fast 检查、单一来源规则、去掉 no-op）|
+| **人的唯一介入** | 本地全流程验证——跑一遍完整闭环确认体验。这是**确认**，不是决策 |
+| **提交** | 按切片逻辑分组（强耦合合在一起，不强行拆单文件）；被多切片渐进修改的文件按当前状态提交、逻辑分组而非严格时间序 |
+| **关闭** | 逐个关闭 issue，评论关联实现 commit + 验收要点 |
+| **产出** | 推送的 commit + 关闭的 issue |
+
+### 跨阶段 / 维护类技能（不在主流程上，按需触发）
+
+| 技能 | 调用 | 用途 |
+|---|---|---|
+| `/triage` | user-invoked | 处理**不是自己创建的** raw issue（bug 报告、外部需求）。把它们走 5 角色（needs-triage/needs-info/ready-for-agent/ready-human/wontfix）状态机，bug 先复现，需 fleshing 时跑 `/grilling`+`/domain-modeling`。**注意**：`/to-issues` 产出的 issue 已是 agent-ready，不要 triage 它们。 |
+| `/improve-codebase-architecture` | user-invoked | 维护代码健康，不是功能开发。扫"加深机会"（浅模块→深模块），出 HTML 报告，选一个后跑 `/grilling`+`/domain-modeling`。用的架构词汇来自 `/codebase-design`（model-invoked）。有空就跑，挑一个加深机会**本身会生成 idea**，可带进阶段 1。 |
+| `/diagnosing-bugs` | **model-invoked** | 硬 bug / 性能回归的诊断纪律循环。Phase 1 建"tight + red-capable"反馈回路是全部；回路建好前禁止跳到假设。Phase 3 列 3-5 个可证伪假设并**先给用户看再测**。Phase 6 写 post-mortem 并问"什么能预防这个 bug"。 |
+| `/codebase-design` | model-invoked | 共享的架构词汇（module/interface/depth/seam/adapter）+ 设计原则。`tdd`/`improve-codebase-architecture` 依赖它，别漂移成"component/service/API"。 |
+| `/domain-modeling` | model-invoked | 主动建领域模型的纪律（见阶段 1）。`grill-with-docs`/`triage`/`improve-codebase-architecture` 都在调它。 |
+| `/grilling` | model-invoked | 可复用的访谈循环，`grill-with-docs`/`grill-me`/`improve-codebase-architecture`/`triage` 的底层。 |
+| `/handoff` | user-invoked | 上下文接近 smart-zone（~120k）时，把当前会话打包成 handoff 文档，**开新 session 引用该文件**继续。fork 语义（新会话 vs `/compact` 的 continue 同会话）。 |
+| `/ask-matt` | user-invoked | 不记得该用哪个技能时的路由——它就是本文"主流程"的地图。 |
+
+### 一句话决策树（调用哪个技能）
+
+```
+有想法要建？
+  有代码库 → /grill-with-docs → /to-prd → /to-issues → (每切片新 session)/implement
+  无代码库 → /grill-me
+收到外部 issue？ → /triage（别 triage 自己 to-issues 产出的）
+代码变 ball of mud？ → /improve-codebase-architecture
+硬 bug / 性能回归？ → /diagnosing-bugs
+上下文快满了？ → /handoff（fork）而非 /compact（continue），除非是有意的阶段间歇
+不记得用哪个？ → /ask-matt
+```
+
+---
+
 ## 适用范围扩展
 
 本工作流虽以 MindSpace（前端 React 应用）为实践背景，但方法论本身技术栈无关：
